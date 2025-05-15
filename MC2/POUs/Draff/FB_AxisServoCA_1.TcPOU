@@ -1,0 +1,651 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <POU Name="FB_AxisServoCA_1" Id="{1f1da12d-50a8-4568-a4d9-6751ba1bc5df}" SpecialFunc="None">
+    <Declaration><![CDATA[(* 
+:Description: This function block is used represent basic axis controled by standard PLCopen motion function blocks with collision avoidance feature.
+*)
+FUNCTION_BLOCK FB_AxisServoCA_1 EXTENDS FB_AxisServo IMPLEMENTS I_UniversalAxisCA
+VAR
+	(*Commands *)
+	bHaltCA				: BOOL;	(*  *)
+	bMoveAbsoluteCA		: BOOL;	(*  *)
+	bMoveRelativeCA		: BOOL;	(*  *)
+	bHaltedCA			: BOOL;
+	
+	(* Parameters *)
+	lrGap				: MC_LREAL;
+	eDirectionCa		: Tc3_Mc3Definitions.MC_DIRECTION; (* Axis movement direction for collision avoidance *)
+	stMoveAbsCaOptions	: ST_MoveAbsoluteCAOptions;
+		
+	(* Function blocks *)
+	fbMcHaltCA			: MC_HaltCA;			(* Halt with colision avoidance *)
+	fbMcMoveAbsoluteCA	: MC_MoveAbsoluteCA;	(* Move absolute with colision avoidance *)
+	fbMcMoveRelativeCA	: MC_MoveRelativeCA;	(* Move relative with colision avoidance *)
+	
+	eAxisStateCA		: E_AxisStateCA;		(*  *)
+	tonDelay			: TON;				(* Delay which allows to see any page changes during tests *)
+
+END_VAR
+(*
+Version history:
+
++-------------+------------+----------------+----------+------------------------------------------+
+|Date         | Version    | created under  | Author   | Remark                                   |
++=============+============+================+==========+==========================================+
+|2021-11      | 1.0.0.0    | V3.1.4024.22   | ADBO     | Function block created                   |
++-------------+------------+----------------+----------+------------------------------------------+
+
+*)]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[IF bFirstCycle THEN
+	stMoveAbsCaOptions.GapControlMode := MC_GAP_CONTROL_MODE.mcGapControlModeStandard;
+END_IF
+
+SUPER^();
+
+tonDelay();]]></ST>
+    </Implementation>
+    <Folder Name="Properties" Id="{6a86e1da-5093-4459-b588-be1dfbf96ae5}" />
+    <Folder Name="Requests" Id="{290916dc-0e08-4c33-83e9-a1efc2860b7d}" />
+    <Folder Name="StateMachine" Id="{5bae794e-1941-4b95-a2f8-c00f0aed762e}" />
+    <Property Name="DirectionCA" Id="{d4a26a71-b2fc-4c15-b424-96f8e8d81c6e}" FolderPath="Properties\">
+      <Declaration><![CDATA[PROPERTY DirectionCA : Tc3_Mc3Definitions.MC_DIRECTION]]></Declaration>
+      <Get Name="Get" Id="{f8570f61-0502-419a-a4d4-7abc21151e59}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[DirectionCA := eDirectionCa;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{187e086e-eefd-47b8-a636-32ed781fcecf}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[eDirectionCa := DirectionCA;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Property Name="Gap" Id="{a7b20172-6390-4db4-ab97-f80f3c563a66}" FolderPath="Properties\">
+      <Declaration><![CDATA[PROPERTY Gap : MC_LREAL]]></Declaration>
+      <Get Name="Get" Id="{5b00b4fd-9e10-48c5-a3aa-b8283cc5efbc}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[Gap := lrGap;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{2a3070ee-4aa0-492f-b46f-b737e91f3d65}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[lrGap := Gap;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Property Name="HaltedCA" Id="{75a9920b-1835-44b1-b554-68fce9aff98e}" FolderPath="Properties\">
+      <Declaration><![CDATA[PROPERTY HaltedCA : REFERENCE TO BOOL
+]]></Declaration>
+      <Get Name="Get" Id="{f36ec92e-1d68-41ea-b033-cb3f1acdfb43}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[HaltedCA REF= bHaltedCA;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Method Name="MR_HaltCA" Id="{83688b84-2cab-454f-bc43-429112e91370}" FolderPath="Requests\">
+      <Declaration><![CDATA[METHOD MR_HaltCA : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF eAxisState >= AXIS_IDLE AND eAxisStateCA <> AXIS_CA_HALT_DONE THEN
+	bHaltedCA := FALSE;
+	
+	IF NOT bHaltLog THEN 
+		fbMachineLogger.MR_AddLogs(CONCAT(sName,' : halt (CA) requested'));
+		bHaltLog := TRUE;
+	END_IF
+	
+	bHaltCA := TRUE;
+	MR_HaltCA := FALSE;
+	eAxisState := AXIS_EXTENSION;
+	eAxisStateCA := AXIS_CA_HALT;
+	
+ELSIF eAxisState = AXIS_EXTENSION AND eAxisStateCA = AXIS_CA_HALT_DONE THEN
+	bInPostion 	:= FALSE;
+	bInVelocity := FALSE;
+	bMoveActive := FALSE;
+	bStopped 	:= FALSE;
+	bJogDone 	:= FALSE;
+	bHaltedCA	:= TRUE;
+	
+	bHaltCA		:= FALSE;
+	MR_HaltCA 	:= TRUE;
+	bHaltLog 	:= FALSE;
+	fbMachineLogger.MR_AddLogs(CONCAT(sName,' : halt (CA) done'));
+	
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="MR_MoveAbsoluteCA" Id="{b16bb13c-4335-4fc4-a412-5ed6e0b1f8a7}" FolderPath="Requests\">
+      <Declaration><![CDATA[METHOD MR_MoveAbsoluteCA : BOOL
+VAR_INPUT
+	lrAbsolutePosition : LREAL;
+END_VAR
+VAR
+	bFirstCycle		   : BOOL := TRUE;
+END_VAR
+VAR_INST
+	lrAbsolutePositionTemp : LREAL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF bFirstCycle THEN
+	bFirstCycle := FALSE;
+	
+	IF THIS^.lrAbsolutePosition = lrAbsolutePosition THEN
+		lrAbsolutePositionTemp := lrAbsolutePosition - 0.001;
+		
+	ELSE
+		lrAbsolutePositionTemp := lrAbsolutePosition;
+		
+	END_IF
+END_IF
+
+
+IF eAxisState = AXIS_IDLE AND THIS^.lrAbsolutePosition <> lrAbsolutePositionTemp THEN
+	THIS^.lrAbsolutePosition := lrAbsolutePosition;
+	bInPostion 	:= FALSE;
+	bInVelocity := FALSE;
+	bMoveActive := TRUE;
+	bStopped 	:= FALSE;
+	bHalted 	:= FALSE;
+	bJogDone 	:= FALSE;
+	bHaltedCA 	:= FALSE;
+	
+	bMoveAbsoluteCA := TRUE;
+	MR_MoveAbsoluteCA := FALSE;
+	eAxisState := AXIS_EXTENSION;
+	eAxisStateCA := AXIS_CA_MOVE_ABSOLUTE;
+	fbMachineLogger.MR_AddLogs(CONCAT(sName,' : move absoulte (CA) requested'));		
+	
+ELSIF eAxisState = AXIS_EXTENSION AND eAxisStateCA = AXIS_CA_MOVE_ABSOLUTE_DONE THEN
+	bInPostion 		:= TRUE;
+	bInVelocity		:= FALSE;
+	bMoveActive 	:= FALSE;
+	bStopped 		:= FALSE;
+	bHalted			:= FALSE;
+	bJogDone 		:= FALSE;
+	bHaltedCA 		:= TRUE;
+	
+	bMoveAbsoluteCA := FALSE;
+	MR_MoveAbsoluteCA := TRUE;
+	fbMachineLogger.MR_AddLogs(CONCAT(sName,' : move absoulte (CA) done'));		
+	
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="MR_MoveRelativeCA" Id="{f2104b5e-9e9b-452a-b8a2-6507cf0d720a}" FolderPath="Requests\">
+      <Declaration><![CDATA[METHOD MR_MoveRelativeCA : BOOL
+VAR_INPUT
+	lrRelativeDistance : LREAL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF eAxisState = AXIS_IDLE AND lrRelativeDistance <> 0.0 THEN
+	bInPostion 	:= FALSE;
+	
+	THIS^.lrRelativeDistance := lrRelativeDistance;
+	bInVelocity := FALSE;
+	bMoveActive := TRUE;
+	bStopped 	:= FALSE;
+	bHalted 	:= FALSE;
+	bJogDone 	:= FALSE;
+	bHaltedCA 	:= FALSE;
+	
+	bMoveRelativeCA := TRUE;
+	MR_MoveRelativeCA := FALSE;
+	eAxisState := AXIS_EXTENSION;
+	eAxisStateCA := AXIS_CA_MOVE_RELATIVE;
+	fbMachineLogger.MR_AddLogs(CONCAT(sName,' : move relative (CA) requested'));			
+	
+ELSIF eAxisState = AXIS_EXTENSION AND eAxisStateCA = AXIS_CA_MOVE_RELATIVE_DONE THEN
+	bInVelocity 	:= FALSE;
+	bMoveActive 	:= FALSE;
+	bStopped 		:= FALSE;
+	bHalted 		:= FALSE;
+	bJogDone 		:= FALSE;
+	bHaltedCA 		:= TRUE;
+	
+	bMoveRelativeCA := FALSE;
+	MR_MoveRelativeCA := TRUE;
+	bInPostion 		:= TRUE;
+	fbMachineLogger.MR_AddLogs(CONCAT(sName,' : move relative (CA) done'));		
+	
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="MS_Aborting" Id="{1b00f5c5-60d6-4975-b363-2724cf8d7104}" FolderPath="StateMachine\">
+      <Declaration><![CDATA[METHOD PROTECTED MS_Aborting
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(* Reset MC_MoveAbsoluteCA *)
+fbMcMoveAbsoluteCA( Axis := stAxisRef, Execute := FALSE);
+
+(* Reset MC_MoveRelativeCA *)
+fbMcMoveRelativeCA( Axis := stAxisRef, Execute := FALSE);
+
+(* Reset MC_HaltCA *)
+fbMcHaltCA( Axis := stAxisRef, Execute := FALSE);
+
+(* Run parent deinitializing procedure *)
+SUPER^.MS_Aborting();]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="MS_AxisCAIdle" Id="{3d18aa50-4a80-41b1-a3a7-1c555b2dfe2a}" FolderPath="StateMachine\">
+      <Declaration><![CDATA[METHOD MS_AxisCAIdle : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="MS_Extension" Id="{e538b1a9-3e33-4505-9fa3-d68fa08f998d}" FolderPath="StateMachine\">
+      <Declaration><![CDATA[METHOD MS_Extension : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[CASE eAxisStateCA OF
+	E_AxisStateCA.AXIS_CA_IDLE:
+		MS_AxisCAIdle();
+		
+	E_AxisStateCA.AXIS_CA_MOVE_ABSOLUTE:
+		MS_MoveAbsoluteCA();
+		
+	E_AxisStateCA.AXIS_CA_MOVE_ABSOLUTE_DONE:
+		MS_MoveAbsoluteCADone();
+		
+	E_AxisStateCA.AXIS_CA_MOVE_RELATIVE:
+		MS_MoveRelativeCA();
+		
+	E_AxisStateCA.AXIS_CA_MOVE_RELATIVE_DONE:
+		MS_MoveRelativeCADone();
+		
+	E_AxisStateCA.AXIS_CA_HALT:
+		MS_HaltCA();
+		
+	E_AxisStateCA.AXIS_CA_HALT_DONE:
+		MS_HaltDoneCA();
+	
+END_CASE]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="MS_HaltCA" Id="{7d360a66-634e-48ee-8e80-e70972465e59}" FolderPath="StateMachine\">
+      <Declaration><![CDATA[METHOD PROTECTED MS_HaltCA
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[fbMcHaltCA( Axis			:= stAxisRef,
+			Execute			:= TRUE,
+			Deceleration	:= lrDeceleration,
+			Gap				:= lrGap);
+	
+IF fbMcHaltCA.Error THEN
+	bError := TRUE;
+	iErrorID := fbMcHaltCA.ErrorId;
+	fbMcHaltCA( Axis := stAxisRef, Execute := FALSE);	
+	fbAlarmHaltCA.ipArguments.Clear().AddUDInt(iErrorID);	
+	fbAlarmHaltCA.Raise(0);
+
+ELSIF fbMcHaltCA.Done THEN
+	fbMcMoveAbsoluteCA( Axis := stAxisRef, Execute := FALSE);
+	eAxisStateCA := AXIS_CA_HALT_DONE;
+	bHalted 	:= TRUE;
+	
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="MS_HaltDoneCA" Id="{9be8812f-b207-41a1-a97b-cb9dc30af840}" FolderPath="StateMachine\">
+      <Declaration><![CDATA[METHOD PROTECTED MS_HaltDoneCA
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(* Reset MC_HaltCA *)
+fbMcHaltCA( Axis := stAxisRef, Execute := FALSE);	
+
+IF NOT bHaltCA AND NOT fbMcHaltCA.Busy THEN
+	tonDelay(IN := TRUE, PT:= T#200MS);
+	
+	IF tonDelay.Q THEN
+		tonDelay(IN := FALSE);
+		eAxisState := AXIS_IDLE;
+		eAxisStateCA := AXIS_CA_IDLE;
+		
+	END_IF
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="MS_MoveAbsoluteCA" Id="{7347c1bb-9801-4ccc-aaee-dd468c7bec48}" FolderPath="StateMachine\">
+      <Declaration><![CDATA[METHOD MS_MoveAbsoluteCA : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[CASE eAxesGroupMethodState OF
+	AXES_GROUP_METHOD_EXECUTE:
+		fbMcMoveAbsoluteCA(	Axis			:= stAxisRef,
+							Execute			:= TRUE,
+							Velocity		:= lrVelocity,
+							Position		:= lrAbsolutePosition,
+							Acceleration	:= lrAcceleration,
+							Deceleration	:= lrDeceleration,
+							Jerk			:= lrJerk,
+							Gap				:= lrGap,
+							Direction		:= eDirectionCa,
+							Options			:= stMoveAbsCaOptions);
+
+		IF NOT fbMcMoveAbsoluteCA.Busy THEN
+			eAxesGroupMethodState := AXES_GROUP_METHOD_DONE; 
+			
+		END_IF
+	
+	AXES_GROUP_METHOD_DONE:
+		IF fbMcMoveAbsoluteCA.Error THEN
+			bError := TRUE;
+			iErrorID := fbMcMoveAbsoluteCA.ErrorId;
+			fbMcMoveAbsoluteCA( Axis := stAxisRef, Execute := FALSE);
+			fbAlarmMoveAbsoluteCA.ipArguments.Clear().AddUDInt(iErrorID);
+			fbAlarmMoveAbsoluteCA.Raise(0);
+				
+		ELSE //fbMcMoveAbsoluteCA.Done THEN
+			eAxisStateCA := AXIS_CA_MOVE_ABSOLUTE_DONE;
+			
+		END_IF
+END_CASE
+			
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="MS_MoveAbsoluteCADone" Id="{94005ea6-a5e9-441f-b32e-ace8ef6680fd}" FolderPath="StateMachine\">
+      <Declaration><![CDATA[METHOD MS_MoveAbsoluteCADone : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(* Reset MC_MoveAbsoluteCA *)
+fbMcMoveAbsoluteCA( Axis := stAxisRef, Execute := FALSE);
+
+IF bInPostion THEN
+	eAxisState := AXIS_IDLE;
+ 	eAxesGroupMethodState := AXES_GROUP_METHOD_EXECUTE;
+	eAxisStateCA := AXIS_CA_IDLE;
+	
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="MS_MoveRelativeCA" Id="{6744cc53-b600-4bf4-9ce2-12cccbeb073b}" FolderPath="StateMachine\">
+      <Declaration><![CDATA[METHOD PROTECTED MS_MoveRelativeCA
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[CASE eAxesGroupMethodState OF
+	AXES_GROUP_METHOD_EXECUTE:
+		fbMcMoveRelativeCA(	Axis			:= stAxisRef,
+							Execute			:= TRUE,
+							Distance		:= lrRelativeDistance,
+							Velocity		:= lrVelocity,
+							Acceleration	:= lrAcceleration,
+							Deceleration	:= lrDeceleration,
+							Jerk			:= lrJerk,
+							Gap 			:= lrGap);
+
+		IF NOT fbMcMoveRelativeCA.Busy THEN
+			eAxesGroupMethodState := AXES_GROUP_METHOD_DONE; 
+			
+		END_IF
+							
+							
+	AXES_GROUP_METHOD_DONE:						
+		IF fbMcMoveRelativeCA.Error THEN
+			bError := TRUE;
+			iErrorID := fbMcMoveRelativeCA.ErrorId;
+			fbMcMoveRelativeCA( Axis := stAxisRef, Execute := FALSE);
+			fbAlarmMoveRelativeCA.ipArguments.Clear().AddUDInt(iErrorID);
+			fbAlarmMoveRelativeCA.Raise(0);
+			
+		ELSE //fbMcMoveRelativeCA.Done THEN
+			eAxisStateCA := AXIS_CA_MOVE_RELATIVE_DONE;
+				
+		END_IF
+END_CASE]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="MS_MoveRelativeCADone" Id="{881e85e7-8120-4ee9-830f-0991367e79e9}" FolderPath="StateMachine\">
+      <Declaration><![CDATA[METHOD PROTECTED MS_MoveRelativeCADone
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(* Reset MC_MoveRelativeCA *)
+fbMcMoveRelativeCA( Axis := stAxisRef, Execute := FALSE);
+
+IF bInPostion THEN
+	eAxisState := AXIS_IDLE;
+	eAxisStateCA := AXIS_CA_IDLE;
+ 	eAxesGroupMethodState := AXES_GROUP_METHOD_EXECUTE;
+
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="MS_Reset" Id="{19fc7b50-ebc3-4064-87ba-65d897a12478}" FolderPath="StateMachine\">
+      <Declaration><![CDATA[(* 
+Copyrights	: Sonion Industrialization - Control Systems Desing Department
+Author		: Adrian Bogdzia - based on MEMS universal libraries
+Date		: 11/2021
+Description : This function block is used represent basic axis
+*)
+METHOD PROTECTED MS_Reset
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(* Reset MC_MoveAbsoluteCA *)
+fbMcMoveAbsoluteCA( Axis := stAxisRef, Execute := FALSE);
+
+(* Reset MC_MoveRelativeCA *)
+fbMcMoveRelativeCA( Axis := stAxisRef, Execute := FALSE);
+
+(* Reset MC_HaltCA *)
+fbMcHaltCA( Axis := stAxisRef, Execute := FALSE);
+
+(* Run parent reset procedure *)
+SUPER^.MS_Reset();]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="MS_Stop" Id="{b1d7f4d5-1e76-4d8c-a65c-58efd3203dd4}" FolderPath="StateMachine\">
+      <Declaration><![CDATA[METHOD PROTECTED MS_Stop
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(* Reset MC_MoveAbsoluteCA *)
+fbMcMoveAbsoluteCA( Axis := stAxisRef, Execute := FALSE);
+
+(* Reset MC_MoveRelativeCA *)
+fbMcMoveRelativeCA( Axis := stAxisRef, Execute := FALSE);
+
+(* Run parent stop procedure *)
+SUPER^.MS_Stop();]]></ST>
+      </Implementation>
+    </Method>
+    <Property Name="StateCA" Id="{f67e7cb6-8e92-46a5-81b7-8a11d0f87ffb}" FolderPath="Properties\">
+      <Declaration><![CDATA[PROPERTY StateCA : REFERENCE TO E_AxisStateCA
+]]></Declaration>
+      <Get Name="Get" Id="{96371260-e9f5-4d0b-8d74-4d0d28d243a0}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[StateCA REF= eAxisStateCA;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <LineIds Name="FB_AxisServoCA_1">
+      <LineId Id="3" Count="3" />
+      <LineId Id="2" Count="0" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="42" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxisServoCA_1.DirectionCA.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxisServoCA_1.DirectionCA.Set">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxisServoCA_1.Gap.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxisServoCA_1.Gap.Set">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxisServoCA_1.HaltedCA.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxisServoCA_1.MR_HaltCA">
+      <LineId Id="320" Count="0" />
+      <LineId Id="343" Count="0" />
+      <LineId Id="345" Count="0" />
+      <LineId Id="321" Count="14" />
+      <LineId Id="337" Count="1" />
+      <LineId Id="349" Count="0" />
+      <LineId Id="339" Count="3" />
+      <LineId Id="353" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxisServoCA_1.MR_MoveAbsoluteCA">
+      <LineId Id="85" Count="0" />
+      <LineId Id="93" Count="0" />
+      <LineId Id="102" Count="0" />
+      <LineId Id="90" Count="0" />
+      <LineId Id="100" Count="0" />
+      <LineId Id="167" Count="0" />
+      <LineId Id="104" Count="0" />
+      <LineId Id="165" Count="1" />
+      <LineId Id="98" Count="0" />
+      <LineId Id="91" Count="0" />
+      <LineId Id="132" Count="0" />
+      <LineId Id="71" Count="0" />
+      <LineId Id="135" Count="8" />
+      <LineId Id="178" Count="0" />
+      <LineId Id="144" Count="13" />
+      <LineId Id="179" Count="0" />
+      <LineId Id="158" Count="3" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxisServoCA_1.MR_MoveRelativeCA">
+      <LineId Id="3" Count="0" />
+      <LineId Id="35" Count="1" />
+      <LineId Id="4" Count="0" />
+      <LineId Id="6" Count="5" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="12" Count="6" />
+      <LineId Id="20" Count="2" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="24" Count="1" />
+      <LineId Id="42" Count="0" />
+      <LineId Id="26" Count="1" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="28" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxisServoCA_1.MS_Aborting">
+      <LineId Id="3" Count="9" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxisServoCA_1.MS_AxisCAIdle">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxisServoCA_1.MS_Extension">
+      <LineId Id="3" Count="0" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="25" Count="1" />
+      <LineId Id="4" Count="17" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxisServoCA_1.MS_HaltCA">
+      <LineId Id="72" Count="15" />
+      <LineId Id="91" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxisServoCA_1.MS_HaltDoneCA">
+      <LineId Id="33" Count="1" />
+      <LineId Id="65" Count="0" />
+      <LineId Id="57" Count="1" />
+      <LineId Id="67" Count="0" />
+      <LineId Id="60" Count="3" />
+      <LineId Id="66" Count="0" />
+      <LineId Id="46" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxisServoCA_1.MS_MoveAbsoluteCA">
+      <LineId Id="31" Count="1" />
+      <LineId Id="56" Count="9" />
+      <LineId Id="34" Count="6" />
+      <LineId Id="81" Count="6" />
+      <LineId Id="49" Count="0" />
+      <LineId Id="88" Count="1" />
+      <LineId Id="53" Count="2" />
+      <LineId Id="27" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxisServoCA_1.MS_MoveAbsoluteCADone">
+      <LineId Id="3" Count="5" />
+      <LineId Id="16" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxisServoCA_1.MS_MoveRelativeCA">
+      <LineId Id="26" Count="0" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="3" Count="7" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="30" Count="2" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="28" Count="1" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="12" Count="9" />
+      <LineId Id="2" Count="0" />
+      <LineId Id="35" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxisServoCA_1.MS_MoveRelativeCADone">
+      <LineId Id="3" Count="3" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxisServoCA_1.MS_Reset">
+      <LineId Id="3" Count="9" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxisServoCA_1.MS_Stop">
+      <LineId Id="3" Count="6" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxisServoCA_1.StateCA.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

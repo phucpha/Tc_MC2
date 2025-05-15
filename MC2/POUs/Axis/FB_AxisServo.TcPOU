@@ -1,0 +1,280 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <POU Name="FB_AxisServo" Id="{6589cba5-148f-47a8-a127-24cca4ed91b7}" SpecialFunc="None">
+    <Declaration><![CDATA[(* 
+:Description: This function block is used represent basic axis controled by standard PLCopen motion function blocks.
+*)
+FUNCTION_BLOCK FB_AxisServo EXTENDS FB_UniversalAxis
+VAR
+	(* MC_Home *)
+	eHomingMode		: MC_HomingMode;		(*  *)
+	stHomingOptions	: ST_HomingOptions;		(*  *)
+	fbMcHome		: MC_Home;				(*  *)
+	
+	(* Home switch cam *)
+	piHomeSwitch	: FB_DigitalInput;		(*  *)
+END_VAR
+(*
+Version history:
+
++-------------+------------+----------------+----------+------------------------------------------+
+|Date         | Version    | created under  | Author   | Remark                                   |
++=============+============+================+==========+==========================================+
+|2021-11      | 1.0.0.0    | V3.1.4024.22   | ADBO     | Function block created                   |
++-------------+------------+----------------+----------+------------------------------------------+
+
+*)]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[(* Run home switch FB *)
+piHomeSwitch();
+
+(* Run parent implementation *)
+SUPER^();]]></ST>
+    </Implementation>
+    <Folder Name="FirstCycle" Id="{275be946-a97f-4cd6-ac88-a77d288adf62}" />
+    <Folder Name="Properties" Id="{68a0a49a-42fa-436b-9f8e-cefc53d48124}">
+      <Folder Name="Parameters" Id="{57e6479d-26fb-4cfc-9593-a832538be85c}" />
+      <Folder Name="References" Id="{868e607b-db85-4cbf-8453-87b1960811c9}" />
+    </Folder>
+    <Folder Name="StateMachine" Id="{3818c0d8-5ceb-45e0-97b0-bce4798f0584}" />
+    <Property Name="HomingMode" Id="{17642853-32ab-43a0-bc98-a79e76ac9a69}" FolderPath="Properties\Parameters\">
+      <Declaration><![CDATA[PROPERTY HomingMode : MC_HomingMode]]></Declaration>
+      <Get Name="Get" Id="{b34f8398-ee30-4bbe-93b2-416d9fb66a66}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[HomingMode := eHomingMode;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{0edc2f2b-ffb0-4c1d-b0a9-72286a36b913}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[eHomingMode := HomingMode;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Property Name="HomingOptions" Id="{bd4f7f18-29dc-4871-afdb-41403620f3b1}" FolderPath="Properties\Parameters\">
+      <Declaration><![CDATA[PROPERTY HomingOptions : ST_HomingOptions]]></Declaration>
+      <Get Name="Get" Id="{bdbfc0e9-9201-4720-b28a-72ccdc9188d7}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[HomingOptions := stHomingOptions;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{d9b8db89-2e0b-4cea-b6df-9b8d2e036a23}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[stHomingOptions := HomingOptions;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Method Name="MR_FirstCycle" Id="{a6240142-a4cb-4304-bf27-57ef3e4a0fd1}" FolderPath="FirstCycle\">
+      <Declaration><![CDATA[METHOD MR_FirstCycle
+VAR_INPUT
+	sName 				: STRING; 	(* Axis object name *)
+	sMeasurementUnits	: STRING;	(* Measurement units used by axis *)
+	bModulo				: BOOL;		(* Axis is periodic *)
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SUPER^.MR_FirstCycle(sName:=sName, sMeasurementUnits := sMeasurementUnits, bModulo := bModulo);
+piHomeSwitch.MR_FirstCycle(CONCAT(THIS^.sName,', home switch'), sModuleType := piHomeSwitch.ModuleType, sPortID := piHomeSwitch.PortID);]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="MS_Aborting" Id="{f2b50b86-35b5-4226-9eba-2c1b885215f9}" FolderPath="StateMachine\">
+      <Declaration><![CDATA[(* 
+Copyrights	: Sonion Industrialization - Control Systems Desing Department
+Author		: Adrian Bogdzia - based on MEMS universal libraries
+Date		: 11/2021
+Description : This function block is used represent basic axis
+*)
+METHOD PROTECTED MS_Aborting
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[fbMcHome(Axis := stAxisRef, Execute := FALSE);
+
+SUPER^.MS_Aborting();]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="MS_Halt" Id="{7627eb40-8a5d-480b-a0d3-149c62505a5a}" FolderPath="StateMachine\">
+      <Declaration><![CDATA[(* 
+Copyrights	: Sonion Industrialization - Control Systems Desing Department
+Author		: Adrian Bogdzia - based on MEMS universal libraries
+Date		: 11/2021
+Description : This function block is used represent basic axis
+*)
+METHOD PROTECTED MS_Halt
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(* Reset MC_Home *)
+fbMcHome(Axis := stAxisRef, Execute := FALSE);
+
+(* Run parent halt state *)
+SUPER^.MS_Halt();]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="MS_Home" Id="{c2e538ba-b38a-4fd5-887f-aed7bd7f7379}" FolderPath="StateMachine\">
+      <Declaration><![CDATA[(* 
+Copyrights	: Sonion Industrialization - Control Systems Desing Department
+Author		: Adrian Bogdzia - based on MEMS universal libraries
+Date		: 11/2021
+Description : This function block is used represent basic axis
+*)
+METHOD PROTECTED MS_Home
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[fbMcHome(	Axis 			:= stAxisRef,
+			Execute 		:= TRUE,
+			Position 		:= lrHomePosition,
+			HomingMode		:= eHomingMode,
+			BufferMode		:= eBufferMode,
+			Options			:= stHomingOptions,
+			bCalibrationCam := piHomeSwitch.In);
+	
+IF fbMcHome.Error THEN
+	bError := TRUE;
+	iErrorID := fbMcHome.ErrorID;
+	fbMcHome( Axis := stAxisRef, Execute := FALSE);
+	fbAlarmHome.ipArguments.Clear().AddUDInt(iErrorID);	
+	fbAlarmHome.Raise(0);
+	
+ELSIF fbMcHome.Done THEN
+	eAxisState := AXIS_HOME_DONE;
+		
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="MS_HomeDone" Id="{5fbc7ac4-b8b3-45ff-a136-276ceff471dd}" FolderPath="StateMachine\">
+      <Declaration><![CDATA[(* 
+Copyrights	: Sonion Industrialization - Control Systems Desing Department
+Author		: Adrian Bogdzia - based on MEMS universal libraries
+Date		: 11/2021
+Description : This function block is used represent basic axis
+*)
+METHOD PROTECTED MS_HomeDone
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[fbMcHome(Axis := stAxisRef, Execute := FALSE);
+
+IF NOT bHome AND NOT fbMcHome.Busy THEN
+	eAxisState := AXIS_IDLE;
+	
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="MS_Reset" Id="{d9bee0f3-2ce6-4521-a42e-e3c3211d68bc}" FolderPath="StateMachine\">
+      <Declaration><![CDATA[(* 
+Copyrights	: Sonion Industrialization - Control Systems Desing Department
+Author		: Adrian Bogdzia - based on MEMS universal libraries
+Date		: 11/2021
+Description : This function block is used represent basic axis
+*)
+METHOD PROTECTED MS_Reset
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(* Reset MC_Home*)
+fbMcHome( Axis := stAxisRef, Execute := FALSE);
+
+(* Run parent reset procedure*)
+IF NOT fbMcHome.Busy THEN
+	SUPER^.MS_Reset();
+	
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="MS_Stop" Id="{7feef091-de7d-4245-bd41-05966da1c68d}" FolderPath="StateMachine\">
+      <Declaration><![CDATA[(* 
+Copyrights	: Precision System Engineering - Control Systems Desing Department
+Author		: Adrian Bogdzia - based on MEMS universal libraries
+Date		: 11/2021
+Description : This function block is used represent basic axis
+*)
+METHOD PROTECTED MS_Stop
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(* Reset MC_Home *)
+fbMcHome(Axis := stAxisRef, Execute := FALSE);
+
+(* Run parent stop state *)
+SUPER^.MS_Stop();]]></ST>
+      </Implementation>
+    </Method>
+    <Property Name="ref_HomeSwitch" Id="{53c50a6b-bef8-43c8-a00e-41f6a7da6cc3}" FolderPath="Properties\References\">
+      <Declaration><![CDATA[PROPERTY ref_HomeSwitch : REFERENCE TO FB_DigitalInput]]></Declaration>
+      <Get Name="Get" Id="{897e0756-9bf6-4477-826c-73e327ad084b}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[ref_HomeSwitch REF= piHomeSwitch;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <LineIds Name="FB_AxisServo">
+      <LineId Id="3" Count="3" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxisServo.HomingMode.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxisServo.HomingMode.Set">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxisServo.HomingOptions.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxisServo.HomingOptions.Set">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxisServo.MR_FirstCycle">
+      <LineId Id="3" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxisServo.MS_Aborting">
+      <LineId Id="3" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxisServo.MS_Halt">
+      <LineId Id="3" Count="3" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxisServo.MS_Home">
+      <LineId Id="3" Count="17" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxisServo.MS_HomeDone">
+      <LineId Id="3" Count="4" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxisServo.MS_Reset">
+      <LineId Id="3" Count="6" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxisServo.MS_Stop">
+      <LineId Id="3" Count="3" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxisServo.ref_HomeSwitch.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

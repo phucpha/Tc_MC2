@@ -1,0 +1,1616 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <POU Name="FB_AxesGroupCA" Id="{efe72612-18da-476a-ac60-89b6cb15d0bf}" SpecialFunc="None">
+    <Declaration><![CDATA[(*
+:Description: This function block is used to control collision avoidance axes group.
+*)
+FUNCTION_BLOCK FB_AxesGroupCA IMPLEMENTS I_AxesGroupCA
+VAR
+	bFirstCycle				: BOOL := TRUE;						(* First cycle bit *)	
+	sName 					: STRING;							(* Axes group name for other utilities *)
+	
+	(* Hardware links *)
+	stAxesGroupRef 			: AXES_GROUP_REF;					(* Axes group reference object *)
+	stInternalAxisRef 		: AXIS_REF;							(* Internal axis reference object *)
+	
+	(* Internal commands *)
+	bInit 					: BOOL;								(* Power on axis and prepare to work *)
+	bAbort 					: BOOL;								(* Power off axis and reset status flags *)
+	bReset 					: BOOL;								(* Reset axis and return to READY state *)
+	bAdd 					: BOOL;								(* Add axis to the group *)
+	bRemove 				: BOOL;								(* Remove axis from the group *)
+	bRemoveAll 				: BOOL;								(* Remove all axes from the group *)
+	bEnable 				: BOOL;								(* Enable the group *)
+	bDisable 				: BOOL;								(* Disable the group *)
+	bGroupHalt				: BOOL;								(* Halt all axes in group *)
+	bGroupStop				: BOOL;								(* Stop all axes in group *)
+	bGroupUnlock			: BOOL;								(* Unlock axes group after stop *)
+	
+	(* Internal parameters *)
+	iIdentInGroup			: UDINT;							(* An axis identyficator *)
+	lrDeceleration			: LREAL;							(* Decelearion of all axes in group *)
+	lrJerk					: LREAL;							(* Jerk of all axes in group *)
+	
+	(* Internal status *)
+	bActive					: BOOL;
+	bBusy					: BOOL;								(* Function block currently executes one of the requests *)
+	bError 					: BOOL;								(* Error status flag *)
+	iErrorID 				: UDINT;							(* Error ID *)
+	bResetDone				: BOOL;								(* All internal errors of a group and all axes belonging to the group reset *)	
+	bAxisAdded				: BOOL;								(* Axis added to the group *)
+	bAxisRemoved			: BOOL;								(* Axis removed from the group *)
+	bRemovedAll				: BOOL;								(* Removing all axes and disabling the group *)
+	bGroupEnabled			: BOOL;								(* Axes group enabled *)
+	bGroupHalted			: BOOL;								(* Axes group halted *)
+	bGroupStopped			: BOOL;								(* Axes group stopped *)
+	iAxesInGroup			: UINT;								(* Amount of the axes in the group *)
+	bGroupLocked			: BOOL;								(* Group locked by stop function *)
+	eStatePlcOpen 			: E_AxesGroupCAStatePlcOpen;
+	eAxesGroupState 		: E_AxesGroupCAState;
+	eAxesGroupStateInit		: E_AxesGroupCAStateInit;
+	eAxesGroupStateAbort	: E_AxesGroupCAStateAborting;
+	eAxesGroupMethodState	: E_AxesGroupCAMethodState;
+	
+	
+	(* Function blocks *)
+	fbMcAddAxisToGroup		: MC_AddAxisToGroup;				(* FB to add an axis to the group *)
+	fbMcRemoveAxisFromGroup	: MC_RemoveAxisFromGroup;			(* FB to remove an axis from the group *)
+	fbMcUngroupAllAxes 		: MC_UngroupAllAxes;				(* FB to ungroup all axes from the group *)
+	
+	fbMcGroupEnable 		: MC_GroupEnable;					(* FB to enable the group *)
+	fbMcGroupDisable 		: MC_GroupDisable;					(* FB to disable the group *)
+	
+	fbMcGroupReadStatus		: MC_GroupReadStatus;				(* FB to read current axes group status *)
+	fbMcGroupReadError		: MC_GroupReadError;				(* FB to read axes group error *)
+	fbMcGroupReset 			: MC_GroupReset;					(* FB to reset axes group *)
+	
+	fbMcGroupHalt			: MC_GroupHalt;						(* FB to halt all axes in group *)
+	fbMcGroupStop			: MC_GroupStop;						(* FB to stop all axes in group *)
+	
+	(* Tc3 EventLogger - messages *)
+	fbAlarmGroupReset		: FB_TcAlarm;						(*  *)
+	fbAlarmUngroupAll		: FB_TcAlarm;						(*  *)
+	fbAlarmGroupDisable		: FB_TcAlarm;						(*  *)
+	fbAlarmAddAxisToGroup	: FB_TcAlarm;						(*  *)
+	fbAlarmGroupEnable		: FB_TcAlarm;						(*  *)
+	fbAlarmRemoveFromGroup	: FB_TcAlarm;						(*  *)
+	
+	bResetConfirmation 		: BOOL;
+	bGroupHaltLog			: BOOL;
+	bGroupStopLog			: BOOL;
+	
+	rtError					: R_TRIG; 				(* Rising edge trigger for function block error *)
+	
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[(* Run first cycle procedure *)
+IF bFirstCycle THEN
+	bFirstCycle := FALSE;
+		
+	fbAlarmGroupReset.CreateEx( stEventEntry := TC_EVENTS.ShellAxesGroupEventClass.GroupReset, 
+									bWithConfirmation := 1,
+									ipSourceInfo := 0);
+									
+	fbAlarmUngroupAll.CreateEx( stEventEntry := TC_EVENTS.ShellAxesGroupEventClass.UngroupAll, 
+									bWithConfirmation := 1,
+									ipSourceInfo := 0);
+		
+	fbAlarmGroupDisable.CreateEx( stEventEntry := TC_EVENTS.ShellAxesGroupEventClass.GroupDisable, 
+									bWithConfirmation := 1,
+									ipSourceInfo := 0);
+									
+	fbAlarmAddAxisToGroup.CreateEx( stEventEntry := TC_EVENTS.ShellAxesGroupEventClass.AddAxisToGroup, 
+									bWithConfirmation := 1,
+									ipSourceInfo := 0);
+		
+	fbAlarmGroupEnable.CreateEx( stEventEntry := TC_EVENTS.ShellAxesGroupEventClass.GroupEnable, 
+									bWithConfirmation := 1,
+									ipSourceInfo := 0);
+									
+	fbAlarmRemoveFromGroup.CreateEx( stEventEntry := TC_EVENTS.ShellAxesGroupEventClass.RemoveFromGroup, 
+									bWithConfirmation := 1,
+									ipSourceInfo := 0);
+									
+END_IF
+
+(* Reading the group status from group reference *)
+fbMcGroupReadStatus( AxesGroup := stAxesGroupRef, Enable := TRUE);
+
+(* Setting the PLCOpen group status*)
+IF fbMcGroupReadStatus.Valid THEN
+	IF fbMcGroupReadStatus.GroupDisabled THEN
+		eStatePlcOpen := PLCOPEN_AXES_GROUP_DISABLED;
+		
+	ELSIF fbMcGroupReadStatus.GroupErrorStop THEN
+		eStatePlcOpen := PLCOPEN_AXES_GROUP_ERROR;
+		
+	ELSIF fbMcGroupReadStatus.GroupStandby THEN
+		eStatePlcOpen := PLCOPEN_AXES_GROUP_STANDBY;
+		
+	ELSIF fbMcGroupReadStatus.GroupMoving THEN
+		eStatePlcOpen := PLCOPEN_AXES_GROUP_MOVING;
+		
+	ELSIF fbMcGroupReadStatus.GroupStopping THEN
+		eStatePlcOpen := PLCOPEN_AXES_GROUP_STOPPING;
+		
+	END_IF
+END_IF
+
+(* Reading errors *)
+fbMcGroupReadError( AxesGroup := stAxesGroupRef, Enable := TRUE);
+
+IF fbMcGroupReadError.Valid THEN
+	iErrorID := fbMcGroupReadError.GroupErrorId;
+END_IF
+
+
+(* Report errors that occur *)
+rtError(CLK:=bError);
+
+IF rtError.Q THEN 
+	fbMachineLogger.MR_AddLogs(FUN_MergeStrings5(sName, ' : Error occured (error ID: ', UDINT_TO_STRING(iErrorID), ')', ''));
+
+END_IF
+
+(* Execute state machine *)
+StateMachine();]]></ST>
+    </Implementation>
+    <Folder Name="FirstCycle" Id="{cd44edd0-6cf7-4916-a206-97e9a98a221c}" />
+    <Folder Name="Properties" Id="{9f0b9c17-4586-4772-b852-d7c0d4ea9cef}">
+      <Folder Name="Parameters" Id="{ced9df37-545b-4fef-998b-ec69da624e41}" />
+      <Folder Name="Status" Id="{0ef55f12-3c06-4663-88bc-bb6aefd53cd8}" />
+    </Folder>
+    <Folder Name="Requests" Id="{a43e8d8b-c246-4dd6-94a7-4115fa2ebbeb}" />
+    <Folder Name="StateMachine" Id="{bc12f049-bcda-4028-acc0-d667b81b031f}" />
+    <Property Name="Active" Id="{d1c87b77-1c62-43c6-bb82-af78164e5a31}" FolderPath="Properties\Status\">
+      <Declaration><![CDATA[PROPERTY Active : REFERENCE TO BOOL
+]]></Declaration>
+      <Get Name="Get" Id="{80c42d9f-b29b-4752-a274-46b50e2c8354}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[Active REF= bActive;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="AxesGroupRef" Id="{9b015662-9ea8-4f4a-b261-0b843552cf44}" FolderPath="Properties\Status\">
+      <Declaration><![CDATA[PROPERTY AxesGroupRef : REFERENCE TO Tc3_McCoordinatedMotion.AXES_GROUP_REF
+]]></Declaration>
+      <Get Name="Get" Id="{0de12174-7316-4e5a-84e6-97686bddf080}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[AxesGroupRef REF= stAxesGroupRef;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="AxesInGroup" Id="{418baecf-b5a8-4e7a-984f-f23d88603fed}" FolderPath="Properties\Status\">
+      <Declaration><![CDATA[PROPERTY AxesInGroup : REFERENCE TO UINT]]></Declaration>
+      <Get Name="Get" Id="{0771300a-e040-4050-ad2c-e8aa1b357033}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[AxesInGroup REF= iAxesInGroup;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="AxisAdded" Id="{d1602e69-9cc6-4585-832d-15ee09e07720}" FolderPath="Properties\Status\">
+      <Declaration><![CDATA[PROPERTY AxisAdded : REFERENCE TO BOOL]]></Declaration>
+      <Get Name="Get" Id="{f08878da-1479-4c53-9342-1a4b91fa25ea}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[AxisAdded REF= bAxisAdded;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="AxisRemoved" Id="{e2525c3a-591f-4329-b688-f96a916ee119}" FolderPath="Properties\Status\">
+      <Declaration><![CDATA[PROPERTY AxisRemoved : REFERENCE TO BOOL]]></Declaration>
+      <Get Name="Get" Id="{d5bb66cd-bf2a-4816-a08b-b708135ac2c8}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[AxisRemoved REF= bAxisRemoved;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="Busy" Id="{a0c975ab-1aa9-4024-9742-f5a212322c91}" FolderPath="Properties\Status\">
+      <Declaration><![CDATA[PROPERTY Busy : REFERENCE TO BOOL
+]]></Declaration>
+      <Get Name="Get" Id="{7f8b937a-1032-4d51-81d8-b5b06fede17b}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[Busy REF= bBusy;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="Deceleration" Id="{1423a3f8-b052-4f68-bdbb-42ec0608b0e0}" FolderPath="Properties\Parameters\">
+      <Declaration><![CDATA[(* Decelearion of all axes in group *)
+PROPERTY Deceleration : LREAL]]></Declaration>
+      <Get Name="Get" Id="{efb6ae48-65d6-4ea1-8a05-f50c17582e70}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[Deceleration := lrDeceleration;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{e38da1b5-f3e3-46e7-8ba7-1e7280d064aa}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[lrDeceleration := Deceleration;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Property Name="Error" Id="{f30a36eb-97d8-4ba3-89fa-a0f7e18599e4}" FolderPath="Properties\Status\">
+      <Declaration><![CDATA[PROPERTY Error : REFERENCE TO BOOL
+]]></Declaration>
+      <Get Name="Get" Id="{20478765-444f-49a3-a295-f9e4268a0ef6}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[Error REF= bError;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="ErrorID" Id="{e92d5856-6809-4a2d-92a7-587f1804d81b}" FolderPath="Properties\Status\">
+      <Declaration><![CDATA[PROPERTY ErrorID : REFERENCE TO UDINT
+]]></Declaration>
+      <Get Name="Get" Id="{4aa67f76-2246-412b-839b-aba9a798cacb}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[ErrorID REF= iErrorID;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="GroupEnabled" Id="{236fe3cb-eaaf-4671-a7aa-089bb1462f80}" FolderPath="Properties\Status\">
+      <Declaration><![CDATA[PROPERTY GroupEnabled : REFERENCE TO BOOL]]></Declaration>
+      <Get Name="Get" Id="{01e8a584-5b0e-4b50-a17b-269a0b510d1d}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[GroupEnabled REF= bGroupEnabled;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="GroupHalted" Id="{fb599594-1972-4218-8290-cb45ae3ea555}" FolderPath="Properties\Status\">
+      <Declaration><![CDATA[PROPERTY GroupHalted : REFERENCE TO BOOL]]></Declaration>
+      <Get Name="Get" Id="{987c12da-07b7-4e29-b3b0-9530b8d292ef}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[GroupHalted REF= bGroupHalted;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="GroupLocked" Id="{f43e95f2-5121-4958-985d-a5195978d37e}" FolderPath="Properties\Status\">
+      <Declaration><![CDATA[PROPERTY GroupLocked : REFERENCE TO BOOL]]></Declaration>
+      <Get Name="Get" Id="{7d7383cc-f0a5-4a67-964c-fa1107d5a136}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[GroupLocked REF= bGroupLocked;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="GroupStopped" Id="{833bdeb8-c6f4-428f-a3e9-0a8cdf20e50a}" FolderPath="Properties\Status\">
+      <Declaration><![CDATA[PROPERTY GroupStopped : REFERENCE TO BOOL]]></Declaration>
+      <Get Name="Get" Id="{a5a96894-5a2f-4792-91b9-d91bf0f9e728}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[GroupStopped REF= bGroupStopped;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="Jerk" Id="{7729f996-fd47-4018-acdd-ca210896dc42}" FolderPath="Properties\Parameters\">
+      <Declaration><![CDATA[(* Jerk of all axes in group *)
+PROPERTY Jerk : LREAL]]></Declaration>
+      <Get Name="Get" Id="{08f65016-b6b3-4a08-ad40-c379fb458476}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[Jerk := lrJerk;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{09da076c-d562-460b-8433-2e1fd37064e2}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[lrJerk := Jerk;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Method Name="MR_Abort" Id="{32423561-4de2-4c51-b4b7-00c7d676360b}" FolderPath="Requests\">
+      <Declaration><![CDATA[METHOD MR_Abort : BOOL
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF eAxesGroupState >= AXES_GROUP_IDLE THEN
+	bBusy := TRUE;
+	bAbort := TRUE;
+	eAxesGroupStateAbort := AXES_GROUP_ABORTING_RESET_FBS;
+	eAxesGroupState := AXES_GROUP_ABORTING;	
+	
+	fbMachineLogger.MR_AddLogs(CONCAT(sName,' : abort requested'));			
+
+ELSIF eAxesGroupState = AXES_GROUP_ABORTING AND eAxesGroupStateAbort = AXES_GROUP_ABORTING_DONE THEN
+	bActive := FALSE;
+	bAbort := FALSE;	
+	MR_Abort := TRUE;
+	bBusy := FALSE;
+	
+	fbMachineLogger.MR_AddLogs(CONCAT(sName,' : abort done'));	
+
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="MR_Add" Id="{2622b664-9d58-4f8b-bb5c-e1fca82c2450}" FolderPath="Requests\">
+      <Declaration><![CDATA[METHOD MR_Add : BOOL
+VAR_INPUT
+	stInternalAxisRef	: AXIS_REF;
+	iAxisIdentyficator	: UINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF eAxesGroupState = AXES_GROUP_IDLE THEN
+	bBusy 			:= TRUE;
+	bAdd 			:= TRUE;
+	
+	bAxisAdded 		:= FALSE;
+	bAxisRemoved 	:= FALSE;
+	bRemovedAll 	:= FALSE;
+	bResetDone		:= FALSE;
+	
+	THIS^.stInternalAxisRef := stInternalAxisRef;
+	iIdentInGroup := iAxisIdentyficator;
+	
+	eAxesGroupState := AXES_GROUP_ADD;
+	fbMachineLogger.MR_AddLogs(CONCAT(sName,' : axes group addition requested'));			
+	
+ELSIF eAxesGroupState = AXES_GROUP_ADD_DONE THEN
+	bAdd 			:= FALSE;
+	
+	MR_Add 			:= TRUE;
+	bAxisAdded 		:= TRUE;
+	iAxesInGroup 	:= iAxesInGroup + 1;
+
+	bBusy			:= FALSE;
+
+	fbMachineLogger.MR_AddLogs(CONCAT(sName,' : axes group addition done'));			
+	
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="MR_Disable" Id="{4f46e78d-18d8-4325-ba7b-c77482ef42e9}" FolderPath="Requests\">
+      <Declaration><![CDATA[METHOD MR_Disable : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF eAxesGroupState = AXES_GROUP_IDLE THEN
+	bBusy 			:= TRUE;
+	bDisable 		:= TRUE;
+	
+	bAxisAdded 		:= FALSE;
+	bAxisRemoved 	:= FALSE;
+	bRemovedAll 	:= FALSE;
+	bResetDone		:= FALSE;
+	
+	eAxesGroupState := AXES_GROUP_DISABLE;
+	fbMachineLogger.MR_AddLogs(CONCAT(sName,' : axes group disablement requested'));				
+	
+ELSIF eAxesGroupState = AXES_GROUP_DISABLE_DONE THEN
+	bDisable 		:= FALSE;
+	
+	MR_Disable 		:= TRUE;
+	bGroupEnabled	:= FALSE;
+	
+	bBusy 			:= FALSE;
+	
+	fbMachineLogger.MR_AddLogs(CONCAT(sName,' : axes group disablement done'));			
+	
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="MR_Enable" Id="{8c5d8862-94cd-41f9-9d26-407264799d20}" FolderPath="Requests\">
+      <Declaration><![CDATA[METHOD MR_Enable : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF eAxesGroupState = AXES_GROUP_IDLE THEN
+	bBusy			:= TRUE;
+	bEnable 		:= TRUE;
+	
+	bAxisAdded 		:= FALSE;
+	bAxisRemoved 	:= FALSE;
+	bRemovedAll 	:= FALSE;
+	bResetDone		:= FALSE;
+	
+	eAxesGroupState := AXES_GROUP_ENABLE;
+	fbMachineLogger.MR_AddLogs(CONCAT(sName,' : axes group enablement requested'));
+	
+ELSIF eAxesGroupState = AXES_GROUP_ENABLE_DONE THEN
+	bEnable 		:= FALSE;
+	MR_Enable 		:= TRUE;
+	bGroupEnabled 	:= TRUE;
+	bBusy 			:= FALSE;
+	fbMachineLogger.MR_AddLogs(CONCAT(sName,' : axes group enablement done'));
+	
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="MR_FirstCycle" Id="{7c977eb8-73dd-4ad8-9f1c-50cb3f91ecfb}" FolderPath="FirstCycle\">
+      <Declaration><![CDATA[METHOD MR_FirstCycle
+VAR_INPUT
+	sName 			: STRING;	(* Default axes group object name *)
+	lrDeceleration 	: LREAL;	(* Default axes group object deceleration *)
+	lrJerk			: LREAL;	(* Default axes group object jerk *)
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[THIS^.sName := sName;
+THIS^.lrDeceleration := lrDeceleration;
+THIS^.lrJerk := lrJerk;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="MR_Halt" Id="{36540e0d-17af-45eb-b65e-b5e604a1f2e5}" FolderPath="Requests\">
+      <Declaration><![CDATA[METHOD MR_Halt : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF eAxesGroupState >= AXES_GROUP_IDLE AND eAxesGroupState <> AXES_GROUP_HALT_DONE THEN
+	bBusy := TRUE;
+	
+	IF NOT bGroupHaltLog THEN 
+		fbMachineLogger.MR_AddLogs(CONCAT(sName,' : halt requested'));
+		bGroupHaltLog := TRUE;
+	END_IF
+	
+	bGroupHalt := TRUE;
+	MR_Halt := FALSE;
+	eAxesGroupState := AXES_GROUP_HALT;
+	
+ELSIF eAxesGroupState = AXES_GROUP_HALT_DONE THEN
+	bGroupHalt := FALSE;
+	MR_Halt := TRUE;
+	bGroupHaltLog := FALSE;
+	bBusy := FALSE;
+	
+	fbMachineLogger.MR_AddLogs(CONCAT(sName,' : halt done'));
+	
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="MR_Init" Id="{4f5434cc-b344-4c08-a6b5-238c6937138f}" FolderPath="Requests\">
+      <Declaration><![CDATA[METHOD MR_Init : BOOL
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF eAxesGroupState = AXES_GROUP_UNINITIALIZED THEN
+	bBusy := TRUE;
+	bActive := TRUE;
+	bInit := TRUE;
+	MR_Init := FALSE;
+	eAxesGroupState := AXES_GROUP_INITIALIZING;
+	fbMachineLogger.MR_AddLogs(CONCAT(sName,' : initialization requested'));
+	
+ELSIF eAxesGroupState = AXES_GROUP_INITIALIZING AND eAxesGroupStateInit = AXES_GROUP_INIT_DONE THEN
+	bInit := FALSE;
+	MR_Init := TRUE;
+	bBusy := FALSE;
+
+	fbMachineLogger.MR_AddLogs(CONCAT(sName,' : initialization done'));	
+
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="MR_Remove" Id="{2f31bfe2-384d-4727-9778-024d28c9d699}" FolderPath="Requests\">
+      <Declaration><![CDATA[METHOD MR_Remove : BOOL
+VAR_INPUT
+	iAxisIdentyficator	: UINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF eAxesGroupState = AXES_GROUP_IDLE THEN
+	bBusy 			:= TRUE;	
+	bRemove 		:= TRUE;
+	
+	bAxisAdded 		:= FALSE;
+	bAxisRemoved 	:= FALSE;
+	bRemovedAll 	:= FALSE;
+	bResetDone		:= FALSE;
+	
+	iIdentInGroup	:= iAxisIdentyficator;
+	
+	eAxesGroupState := AXES_GROUP_REMOVE;
+	fbMachineLogger.MR_AddLogs(CONCAT(sName,' : axes group removal requested'));
+	
+ELSIF eAxesGroupState = AXES_GROUP_REMOVE_DONE THEN
+	bRemove 		:= FALSE;
+	MR_Remove 		:= TRUE;	
+	bAxisRemoved 	:= TRUE;
+	iAxesInGroup 	:= iAxesInGroup - 1;
+	bBusy 			:= FALSE;
+	fbMachineLogger.MR_AddLogs(CONCAT(sName,' : axes group removal done'));
+	
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="MR_RemoveAll" Id="{f3206f26-c51b-401a-a848-516db6de6d67}" FolderPath="Requests\">
+      <Declaration><![CDATA[METHOD MR_RemoveAll : BOOL
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF eAxesGroupState = AXES_GROUP_IDLE THEN
+	bBusy := TRUE;
+	bRemoveAll 		:= TRUE;
+	
+	bAxisAdded 		:= FALSE;
+	bAxisRemoved 	:= FALSE;
+	bRemovedAll 	:= FALSE;
+	bResetDone		:= FALSE;
+	
+	eAxesGroupState := AXES_GROUP_REMOVE_ALL;
+	fbMachineLogger.MR_AddLogs(CONCAT(sName,' : all axes groups removal requested'));
+	
+ELSIF eAxesGroupState = AXES_GROUP_REMOVE_ALL_DONE THEN
+	bRemoveAll 		:= FALSE;
+	MR_RemoveAll 	:= TRUE;
+	bRemovedAll 	:= TRUE;
+	iAxesInGroup 	:= 0;
+	bBusy 			:= FALSE;
+	
+	fbMachineLogger.MR_AddLogs(CONCAT(sName,' : all axes groups removal done'));
+	
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="MR_Reset" Id="{bb6e6a31-4116-4564-ba34-5663d3148699}" FolderPath="Requests\">
+      <Declaration><![CDATA[METHOD MR_Reset : BOOL
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF eAxesGroupState >= AXES_GROUP_IDLE AND eAxesGroupState <> AXES_GROUP_RESET_DONE AND bError THEN
+	bBusy			:= TRUE;
+	bReset 			:= TRUE;
+	bAxisAdded 		:= FALSE;
+	bAxisRemoved 	:= FALSE;
+	bRemovedAll 	:= FALSE;
+	bGroupEnabled 	:= FALSE;
+	bResetDone		:= FALSE;
+	
+	eAxesGroupState := AXES_GROUP_RESET;
+	fbMachineLogger.MR_AddLogs(CONCAT(sName,' : reset requested'));
+	
+ELSIF eAxesGroupState = AXES_GROUP_RESET_DONE THEN
+	bReset 		:= FALSE;
+	MR_Reset 	:= FALSE;
+	bResetDone 	:= TRUE;
+	bBusy		:= FALSE;
+	
+	fbMachineLogger.MR_AddLogs(CONCAT(sName,' : reset done'));
+	
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="MR_Stop" Id="{b6700940-19e9-4bbe-8e6e-62644d98f98b}" FolderPath="Requests\">
+      <Declaration><![CDATA[METHOD MR_Stop : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF eAxesGroupState >= AXES_GROUP_IDLE AND eAxesGroupState <> AXES_GROUP_STOP_DONE THEN
+	bBusy := TRUE;
+	
+	IF NOT bGroupStopLog THEN 
+		fbMachineLogger.MR_AddLogs(CONCAT(sName,' : stop requested'));
+		bGroupStopLog := TRUE;
+	END_IF
+	
+	bGroupStop := TRUE;
+	MR_Stop := FALSE;
+	eAxesGroupState := AXES_GROUP_STOP;
+	
+ELSIF eAxesGroupState = AXES_GROUP_STOP_DONE THEN
+	bGroupStop := FALSE;
+	MR_Stop := TRUE;
+	bGroupLocked := TRUE;
+	bGroupStopLog := FALSE;
+	bBusy := FALSE;
+	fbMachineLogger.MR_AddLogs(CONCAT(sName,' : stop done'));
+	
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="MR_Unlock" Id="{8f0902ee-dd6d-46c3-a259-e519fa9bc9c0}" FolderPath="Requests\">
+      <Declaration><![CDATA[METHOD MR_Unlock : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF eAxesGroupState = AXES_GROUP_IDLE AND bGroupLocked THEN
+	bBusy := TRUE;
+	bGroupUnlock := TRUE;
+	MR_Unlock := FALSE;
+	eAxesGroupState := AXES_GROUP_UNLOCK;
+	
+ELSIF eAxesGroupState = AXES_GROUP_UNLOCK_DONE THEN
+	bGroupUnlock := FALSE;
+	MR_Unlock := TRUE;
+	bGroupLocked := FALSE;
+	bBusy := FALSE;
+	
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="MS_Aborting" Id="{50708e28-6e19-4565-89e5-1a0f7751f26a}" FolderPath="StateMachine\">
+      <Declaration><![CDATA[METHOD PROTECTED MS_Aborting
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[CASE eAxesGroupStateAbort OF
+	AXES_GROUP_ABORTING_RESET_FBS:
+		fbMcAddAxisToGroup( AxesGroup := stAxesGroupRef, Axis := stInternalAxisRef, Execute := FALSE);
+
+		fbMcRemoveAxisFromGroup( AxesGroup := stAxesGroupRef, Execute := FALSE);
+
+		fbMcUngroupAllAxes( AxesGroup := stAxesGroupRef, Execute := FALSE);
+
+		fbMcGroupEnable( AxesGroup := stAxesGroupRef, Execute := FALSE);
+
+		fbMcGroupDisable( AxesGroup := stAxesGroupRef, Execute := FALSE);
+
+		fbMcGroupReadStatus( AxesGroup := stAxesGroupRef, Enable := FALSE);
+
+		fbMcGroupReadError( AxesGroup := stAxesGroupRef, Enable := FALSE);
+		
+		fbMcGroupReset( AxesGroup := stAxesGroupRef, Execute := FALSE);
+		
+		fbMcGroupHalt( AxesGroup := stAxesGroupRef, Execute := FALSE);
+		
+		fbMcGroupStop( AxesGroup := stAxesGroupRef, Execute := FALSE);
+		
+		IF NOT fbMcGroupStop.Busy THEN
+			eAxesGroupStateAbort := AXES_GROUP_ABORTING_RESET_ERRORS;
+		END_IF
+		
+	AXES_GROUP_ABORTING_RESET_ERRORS:
+		fbMcGroupReset( AxesGroup := stAxesGroupRef, Execute := TRUE);
+	
+		IF fbMcGroupReset.Error THEN
+			bError := TRUE;
+			iErrorID := fbMcGroupReset.ErrorID;
+			fbMcGroupReset(AxesGroup := stAxesGroupRef, Execute := FALSE);
+			
+			fbAlarmGroupReset.ipArguments.Clear().AddUDInt(iErrorID);
+			fbAlarmGroupReset.Raise(0);
+			
+		ELSIF fbMcGroupReset.Done THEN
+			fbMcGroupReset(AxesGroup := stAxesGroupRef, Execute := FALSE);
+			eAxesGroupStateAbort := AXES_GROUP_ABORTING_REMOVE_ALL;
+		END_IF
+	
+	AXES_GROUP_ABORTING_REMOVE_ALL:
+		fbMcUngroupAllAxes( AxesGroup := stAxesGroupRef, Execute := TRUE);
+
+		IF fbMcUngroupAllAxes.Error THEN
+			bError := TRUE;
+			iErrorID := fbMcUngroupAllAxes.ErrorID;
+			fbMcUngroupAllAxes( AxesGroup := stAxesGroupRef, Execute := FALSE);
+			
+			fbAlarmUngroupAll.ipArguments.Clear().AddUDInt(iErrorID);
+			fbAlarmUngroupAll.Raise(0);
+			
+		ELSIF fbMcUngroupAllAxes.Done THEN
+			fbMcUngroupAllAxes( AxesGroup := stAxesGroupRef, Execute := FALSE);
+			eAxesGroupStateAbort := AXES_GROUP_ABORTING_DISABLE;
+		END_IF
+	
+	AXES_GROUP_ABORTING_DISABLE:
+		
+		fbMcGroupDisable( AxesGroup := stAxesGroupRef, Execute := TRUE);
+	
+		IF fbMcGroupDisable.Error THEN
+			bError := TRUE;
+			iErrorID := fbMcGroupDisable.ErrorID;
+			fbMcGroupDisable( AxesGroup := stAxesGroupRef, Execute := FALSE);
+			
+			fbAlarmGroupDisable.ipArguments.Clear().AddUDInt(iErrorID);
+			fbAlarmGroupDisable.Raise(0);
+			
+		ELSIF fbMcGroupDisable.Done THEN
+			fbMcGroupDisable( AxesGroup := stAxesGroupRef, Execute := FALSE);
+			eAxesGroupStateAbort := AXES_GROUP_ABORTING_DONE;
+		END_IF
+	
+	AXES_GROUP_ABORTING_DONE:
+		IF NOT bAbort THEN
+			eAxesGroupState := AXES_GROUP_UNINITIALIZED;
+		END_IF
+END_CASE]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="MS_Add" Id="{75edb17b-ddd6-48af-90f5-2e66380fc1ed}" FolderPath="StateMachine\">
+      <Declaration><![CDATA[METHOD PROTECTED MS_Add]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[CASE eAxesGroupMethodState OF
+	AXES_GROUP_METHOD_EXECUTE:
+		fbMcAddAxisToGroup( AxesGroup 		:= stAxesGroupRef,
+							Axis 			:= stInternalAxisRef,
+							Execute 		:= TRUE,
+							IdentInGroup 	:= UDINT_TO_IDENTINGROUP(iIdentInGroup));
+	
+		IF NOT fbMcAddAxisToGroup.Busy THEN
+			eAxesGroupMethodState := AXES_GROUP_METHOD_DONE; 
+			
+		END_IF
+	
+	AXES_GROUP_METHOD_DONE:
+	IF fbMcAddAxisToGroup.Error THEN
+		bError := TRUE;
+		iErrorID := fbMcAddAxisToGroup.ErrorID;
+		fbMcAddAxisToGroup( AxesGroup 		:= stAxesGroupRef,
+							Axis 			:= stInternalAxisRef,
+							Execute 		:= FALSE);
+		
+		fbAlarmAddAxisToGroup.ipArguments.Clear().AddUDInt(iErrorID);
+		fbAlarmAddAxisToGroup.Raise(0);
+		
+	ELSIF fbMcAddAxisToGroup.Done THEN
+		eAxesGroupMethodState := AXES_GROUP_METHOD_EXECUTE;
+		eAxesGroupState := AXES_GROUP_ADD_DONE;
+		
+	END_IF
+END_CASE
+			
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="MS_AddDone" Id="{13edafa1-a62b-490b-b317-896d5e39ff3b}" FolderPath="StateMachine\">
+      <Declaration><![CDATA[METHOD PROTECTED MS_AddDone
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[fbMcAddAxisToGroup( AxesGroup := stAxesGroupRef, Axis := stInternalAxisRef, Execute := FALSE);
+
+IF NOT bAdd THEN
+	eAxesGroupState := AXES_GROUP_IDLE;
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="MS_GroupDisable" Id="{17604da3-49f1-4310-8a88-1852952391a1}" FolderPath="StateMachine\">
+      <Declaration><![CDATA[METHOD PROTECTED MS_GroupDisable
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[CASE eAxesGroupMethodState OF
+	AXES_GROUP_METHOD_EXECUTE:
+		fbMcGroupDisable( AxesGroup := stAxesGroupRef, Execute := TRUE);
+
+		IF NOT fbMcGroupDisable.Busy THEN
+			eAxesGroupMethodState := AXES_GROUP_METHOD_DONE; 
+			
+		END_IF
+	
+	AXES_GROUP_METHOD_DONE:
+		IF fbMcGroupDisable.Error THEN
+			bError := TRUE;
+			iErrorID := fbMcGroupDisable.ErrorID;
+			fbMcGroupDisable( AxesGroup := stAxesGroupRef, Execute := FALSE);
+		
+			fbAlarmGroupDisable.ipArguments.Clear().AddUDInt(iErrorID);
+			fbAlarmGroupDisable.Raise(0);
+			
+		ELSIF fbMcGroupDisable.Done THEN
+			eAxesGroupMethodState := AXES_GROUP_METHOD_EXECUTE;
+			eAxesGroupState := AXES_GROUP_DISABLE_DONE;	
+			
+		END_IF
+END_CASE
+			
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="MS_GroupDisableDone" Id="{c01be32d-95aa-4c08-8cbe-6c41f5965ae1}" FolderPath="StateMachine\">
+      <Declaration><![CDATA[METHOD PROTECTED MS_GroupDisableDone]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[fbMcGroupDisable( AxesGroup := stAxesGroupRef, Execute := FALSE);
+
+IF NOT bDisable THEN
+	eAxesGroupState := AXES_GROUP_IDLE;
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="MS_GroupEnable" Id="{46dffc40-2981-4461-a328-41207c479195}" FolderPath="StateMachine\">
+      <Declaration><![CDATA[METHOD PROTECTED MS_GroupEnable
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[CASE eAxesGroupMethodState OF
+	AXES_GROUP_METHOD_EXECUTE:
+		fbMcGroupEnable( AxesGroup := stAxesGroupRef, Execute := TRUE);
+	
+		IF NOT fbMcGroupEnable.Busy THEN
+			eAxesGroupMethodState := AXES_GROUP_METHOD_DONE; 
+			
+		END_IF
+	
+	AXES_GROUP_METHOD_DONE:
+		IF fbMcGroupEnable.Error THEN
+			bError := TRUE;
+			iErrorID := fbMcGroupEnable.ErrorID;
+			fbMcGroupEnable( AxesGroup := stAxesGroupRef, Execute := FALSE);
+			
+			fbAlarmGroupEnable.ipArguments.Clear().AddUDInt(iErrorID);
+			fbAlarmGroupEnable.Raise(0);
+			
+		ELSIF fbMcGroupEnable.Done THEN
+			eAxesGroupMethodState := AXES_GROUP_METHOD_EXECUTE;
+			eAxesGroupState := AXES_GROUP_ENABLE_DONE;
+			
+		END_IF
+END_CASE
+			
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="MS_GroupEnableDone" Id="{2d4b02cf-021c-42dc-a01f-fae7e9b52fe5}" FolderPath="StateMachine\">
+      <Declaration><![CDATA[METHOD PROTECTED MS_GroupEnableDone
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[fbMcGroupEnable( AxesGroup := stAxesGroupRef, Execute := FALSE);
+
+IF NOT bEnable THEN
+	eAxesGroupState := AXES_GROUP_IDLE;
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="MS_GroupHalt" Id="{c4f9a94c-b386-47f7-998f-80e037f4fa76}" FolderPath="StateMachine\">
+      <Declaration><![CDATA[METHOD PROTECTED MS_GroupHalt
+VAR
+	bFirstCycle : BOOL := TRUE;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[CASE eAxesGroupMethodState OF
+	AXES_GROUP_METHOD_EXECUTE:
+		fbMcGroupHalt( AxesGroup		:= stAxesGroupRef,
+						Execute 		:= TRUE,
+						Deceleration	:= lrDeceleration,
+						Jerk 			:= lrJerk);
+			
+		IF NOT fbMcGroupHalt.Busy THEN
+			eAxesGroupMethodState := AXES_GROUP_METHOD_DONE; 
+			
+		END_IF
+	
+	AXES_GROUP_METHOD_DONE:
+		IF fbMcGroupHalt.Error THEN
+			bError := TRUE;
+			iErrorID := fbMcGroupHalt.ErrorID;
+			fbMcGroupHalt( AxesGroup := stAxesGroupRef, Execute := FALSE);
+			
+		ELSIF fbMcGroupHalt.Done THEN
+			eAxesGroupMethodState := AXES_GROUP_METHOD_EXECUTE; 
+			eAxesGroupState := AXES_GROUP_HALT_DONE;
+			
+		END_IF
+END_CASE
+			
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="MS_GroupHaltDone" Id="{8aef587a-ff78-41e2-b1fc-3faf9c6fbfe3}" FolderPath="StateMachine\">
+      <Declaration><![CDATA[METHOD PROTECTED MS_GroupHaltDone
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[fbMcGroupHalt( AxesGroup := stAxesGroupRef, Execute := TRUE);
+
+IF NOT bGroupHalt THEN
+	eAxesGroupState := AXES_GROUP_IDLE;
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="MS_GroupStop" Id="{415b755b-195f-4978-8452-31505d6920d9}" FolderPath="StateMachine\">
+      <Declaration><![CDATA[METHOD PROTECTED MS_GroupStop]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[CASE eAxesGroupMethodState OF
+	AXES_GROUP_METHOD_EXECUTE:
+		fbMcGroupStop( AxesGroup 		:= stAxesGroupRef,
+						Execute 		:= TRUE,
+						Deceleration 	:= lrDeceleration,
+						Jerk			:= lrJerk);
+			
+		IF NOT fbMcGroupStop.Busy THEN
+			eAxesGroupMethodState := AXES_GROUP_METHOD_DONE; 
+			
+		END_IF
+	
+	AXES_GROUP_METHOD_DONE:
+		IF fbMcGroupStop.Error THEN
+			bError := TRUE;
+			iErrorID := fbMcGroupHalt.ErrorID;
+			fbMcGroupStop( AxesGroup := stAxesGroupRef, Execute := FALSE);
+			
+		ELSIF fbMcGroupStop.Done THEN
+			eAxesGroupMethodState := AXES_GROUP_METHOD_EXECUTE; 
+			eAxesGroupState := AXES_GROUP_STOP_DONE;
+			
+		END_IF
+END_CASE
+			]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="MS_GroupStopDone" Id="{bdc416d7-c238-409c-8491-c9d703909623}" FolderPath="StateMachine\">
+      <Declaration><![CDATA[METHOD PROTECTED MS_GroupStopDone
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF NOT bGroupStop THEN
+	eAxesGroupState := AXES_GROUP_IDLE;
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="MS_GroupUnlock" Id="{25556e0e-c5d1-47f4-bbdc-fad8d5ff1c3a}" FolderPath="StateMachine\">
+      <Declaration><![CDATA[METHOD PROTECTED MS_GroupUnlock
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[CASE eAxesGroupMethodState OF
+	AXES_GROUP_METHOD_EXECUTE:
+		fbMcGroupStop( AxesGroup := stAxesGroupRef, Execute := FALSE);
+	
+		IF NOT fbMcGroupStop.Busy THEN
+			eAxesGroupState := AXES_GROUP_UNLOCK_DONE;
+			
+		END_IF
+END_CASE
+			
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="MS_GroupUnlockDone" Id="{fbe31b65-15c4-46c1-9654-247ae2fcd5b7}" FolderPath="StateMachine\">
+      <Declaration><![CDATA[METHOD PROTECTED MS_GroupUnlockDone
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF NOT bGroupUnlock THEN
+	eAxesGroupState := AXES_GROUP_IDLE;
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="MS_Idle" Id="{d3a1e9f5-ace4-49be-bc7d-a72a4d19742d}" FolderPath="StateMachine\">
+      <Declaration><![CDATA[METHOD PROTECTED MS_Idle
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="MS_Initializing" Id="{f682d5da-83c4-4a77-93fa-04509a9e7248}" FolderPath="StateMachine\">
+      <Declaration><![CDATA[METHOD PROTECTED MS_Initializing
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[CASE eAxesGroupStateInit OF
+	AXES_GROUP_INIT_RESET:
+		fbMcGroupReset( AxesGroup := stAxesGroupRef, Execute := TRUE);
+			
+		IF fbMcGroupReset.Error THEN
+			bError := TRUE;
+			iErrorID := fbMcGroupReset.ErrorID;
+			fbMcGroupReset( AxesGroup := stAxesGroupRef, Execute := FALSE);
+	
+			fbAlarmGroupReset.ipArguments.Clear().AddUDInt(iErrorID);
+			fbAlarmGroupReset.Raise(0);
+				
+		ELSIF fbMcGroupReset.Done THEN
+			fbMcGroupReset( AxesGroup := stAxesGroupRef, Execute := FALSE);
+			eAxesGroupStateInit := AXES_GROUP_INIT_ENABLE;	
+		END_IF
+		
+	AXES_GROUP_INIT_ENABLE:
+		fbMcGroupEnable( AxesGroup := stAxesGroupRef, Execute := TRUE);
+			
+		IF fbMcGroupEnable.Error THEN
+			bError := TRUE;
+			iErrorID := fbMcGroupEnable.ErrorID;
+			fbMcGroupEnable( AxesGroup := stAxesGroupRef, Execute := FALSE);
+	
+			fbAlarmGroupEnable.ipArguments.Clear().AddUDInt(iErrorID);
+			fbAlarmGroupEnable.Raise(0);
+				
+		ELSIF fbMcGroupEnable.Done THEN
+			fbMcGroupEnable( AxesGroup := stAxesGroupRef, Execute := FALSE);
+			eAxesGroupStateInit := AXES_GROUP_INIT_DONE;	
+		END_IF
+		
+	AXES_GROUP_INIT_DONE:
+		IF NOT bInit THEN
+			eAxesGroupState := AXES_GROUP_READY_INITIALIZED;
+		END_IF
+END_CASE]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="MS_ReadyInitialized" Id="{a9b75966-090e-469e-9c6d-3dba3951f255}" FolderPath="StateMachine\">
+      <Declaration><![CDATA[METHOD PROTECTED MS_ReadyInitialized
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[eAxesGroupState := AXES_GROUP_IDLE;]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="MS_Remove" Id="{9a78afa2-ab27-4320-b86c-26196cad0d57}" FolderPath="StateMachine\">
+      <Declaration><![CDATA[METHOD PROTECTED MS_Remove
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[CASE eAxesGroupMethodState OF
+	AXES_GROUP_METHOD_EXECUTE:
+		fbMcRemoveAxisFromGroup(	AxesGroup		:= stAxesGroupRef,
+									Execute 		:= TRUE,
+									IdentInGroup 	:= UDINT_TO_IDENTINGROUP(iIdentInGroup));
+			
+		IF NOT fbMcRemoveAxisFromGroup.Busy THEN
+			eAxesGroupMethodState := AXES_GROUP_METHOD_DONE; 
+			
+		END_IF
+	
+	AXES_GROUP_METHOD_DONE:
+		IF fbMcRemoveAxisFromGroup.Error THEN
+			bError := TRUE;
+			iErrorID := fbMcRemoveAxisFromGroup.ErrorID;
+			fbMcRemoveAxisFromGroup(	AxesGroup := stAxesGroupRef,
+										Execute := FALSE);
+		
+			fbAlarmRemoveFromGroup.ipArguments.Clear().AddUDInt(iErrorID);
+			fbAlarmRemoveFromGroup.Raise(0);	
+		
+		ELSIF fbMcRemoveAxisFromGroup.Done THEN
+			eAxesGroupMethodState := AXES_GROUP_METHOD_EXECUTE; 
+			eAxesGroupState := AXES_GROUP_REMOVE_DONE;
+			
+		END_IF
+END_CASE
+		]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="MS_RemoveAll" Id="{df1f93c3-6c15-49e1-ba83-d6ab8851b3ec}" FolderPath="StateMachine\">
+      <Declaration><![CDATA[METHOD PROTECTED MS_RemoveAll
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[CASE eAxesGroupMethodState OF
+	AXES_GROUP_METHOD_EXECUTE:
+		fbMcUngroupAllAxes( AxesGroup := stAxesGroupRef, Execute := TRUE);
+		
+	IF NOT fbMcUngroupAllAxes.Busy THEN
+		eAxesGroupMethodState := AXES_GROUP_METHOD_DONE; 
+		
+	END_IF
+	
+	AXES_GROUP_METHOD_DONE:
+	IF fbMcUngroupAllAxes.Error THEN
+		bError := TRUE;
+		iErrorID := fbMcUngroupAllAxes.ErrorID;
+		fbMcUngroupAllAxes( AxesGroup := stAxesGroupRef, Execute := FALSE);
+		fbAlarmUngroupAll.ipArguments.Clear().AddUDInt(iErrorID);
+		fbAlarmUngroupAll.Raise(0);	
+	
+	ELSIF bError THEN
+		MR_Disable();
+		
+		IF NOT Busy THEN
+			bError := FALSE;
+			eAxesGroupMethodState := AXES_GROUP_METHOD_EXECUTE; 
+			eAxesGroupState := AXES_GROUP_REMOVE_ALL_DONE;
+		END_IF
+
+ 	ELSIF fbMcUngroupAllAxes.Done THEN
+		eAxesGroupMethodState := AXES_GROUP_METHOD_EXECUTE; 
+		eAxesGroupState := AXES_GROUP_REMOVE_ALL_DONE;
+		
+	END_IF
+END_CASE
+			
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="MS_RemoveAllDone" Id="{664ef393-9e3a-436d-b12f-cb39112c5a89}" FolderPath="StateMachine\">
+      <Declaration><![CDATA[METHOD PROTECTED MS_RemoveAllDone
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[fbMcUngroupAllAxes( AxesGroup := stAxesGroupRef, Execute := FALSE);
+
+IF NOT bRemoveAll THEN
+	eAxesGroupState := AXES_GROUP_IDLE;
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="MS_RemoveDone" Id="{4d47f3cf-4bd4-4d28-9ab1-d5e23d729268}" FolderPath="StateMachine\">
+      <Declaration><![CDATA[METHOD PROTECTED MS_RemoveDone
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[fbMcRemoveAxisFromGroup( AxesGroup := stAxesGroupRef, Execute := FALSE);
+
+IF NOT bRemove THEN
+	eAxesGroupState := AXES_GROUP_IDLE;
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="MS_Reset" Id="{e5deada9-2459-4236-8f0f-b6e760ca309b}" FolderPath="StateMachine\">
+      <Declaration><![CDATA[METHOD PROTECTED MS_Reset
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[fbMcAddAxisToGroup( AxesGroup := stAxesGroupRef, Axis := stInternalAxisRef, Execute := FALSE);
+
+fbMcRemoveAxisFromGroup( AxesGroup := stAxesGroupRef, Execute := FALSE);
+
+fbMcUngroupAllAxes( AxesGroup := stAxesGroupRef, Execute := FALSE);
+
+fbMcGroupEnable( AxesGroup := stAxesGroupRef, Execute := FALSE);
+
+fbMcGroupDisable( AxesGroup := stAxesGroupRef, Execute := FALSE);
+
+fbMcGroupReadStatus( AxesGroup := stAxesGroupRef, Enable := FALSE);
+
+fbMcGroupReadError( AxesGroup := stAxesGroupRef, Enable := FALSE);
+		
+fbMcGroupReset( AxesGroup := stAxesGroupRef, Execute := FALSE);
+
+fbMcGroupHalt( AxesGroup := stAxesGroupRef, Execute := FALSE);
+
+fbMcGroupStop( AxesGroup := stAxesGroupRef, Execute := FALSE);
+
+(* Confirming and resetting alarms *)
+fbAlarmGroupReset.Confirm( nTimeStamp := 0);
+fbAlarmUngroupAll.Confirm( nTimeStamp := 0);
+fbAlarmGroupDisable.Confirm( nTimeStamp := 0);
+fbAlarmAddAxisToGroup.Confirm( nTimeStamp := 0);
+fbAlarmGroupEnable.Confirm( nTimeStamp := 0);
+fbAlarmRemoveFromGroup.Confirm( nTimeStamp := 0);
+
+fbAlarmGroupReset.Clear( nTimeStamp := 0, bResetConfirmation := bResetConfirmation); 
+fbAlarmUngroupAll.Clear( nTimeStamp := 0, bResetConfirmation := bResetConfirmation); 
+fbAlarmGroupDisable.Clear( nTimeStamp := 0, bResetConfirmation := bResetConfirmation); 
+fbAlarmAddAxisToGroup.Clear( nTimeStamp := 0, bResetConfirmation := bResetConfirmation); 
+fbAlarmGroupEnable.Clear( nTimeStamp := 0, bResetConfirmation := bResetConfirmation); 
+fbAlarmRemoveFromGroup.Clear( nTimeStamp := 0, bResetConfirmation := bResetConfirmation); 
+
+IF NOT fbMcGroupStop.Busy THEN
+	bGroupLocked := FALSE;
+	fbMcGroupReset( AxesGroup := stAxesGroupRef, Execute := TRUE);
+	
+	IF NOT fbMcGroupReset.Error THEN
+		bError := TRUE;
+		iErrorID := fbMcGroupReset.ErrorID;
+		fbMcGroupReset( AxesGroup := stAxesGroupRef, Execute := FALSE);
+
+		fbAlarmGroupReset.ipArguments.Clear().AddUDInt(iErrorID);
+		fbAlarmGroupReset.Raise(0);		
+
+	ELSIF fbMcGroupReset.Done THEN
+		eAxesGroupState := AXES_GROUP_RESET_DONE;
+		
+	END_IF
+	
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="MS_ResetDone" Id="{dd2fb911-509b-439e-ac5e-e53306793dee}" FolderPath="StateMachine\">
+      <Declaration><![CDATA[METHOD PROTECTED MS_ResetDone
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[fbMcGroupReset( AxesGroup := stAxesGroupRef, Execute := FALSE);
+
+IF NOT bReset THEN
+	eAxesGroupState := AXES_GROUP_IDLE;
+	
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="MS_Uninitialized" Id="{f3ded5e1-315f-4984-b6aa-a9e0859d4dce}" FolderPath="StateMachine\">
+      <Declaration><![CDATA[METHOD PROTECTED MS_Uninitialized
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[(* Reset commands *)
+bAbort 		:= FALSE;
+bReset 		:= FALSE;
+bAdd 		:= FALSE;
+bRemove 	:= FALSE;
+bRemoveAll 	:= FALSE;
+bEnable 	:= FALSE;
+bDisable 	:= FALSE;
+bGroupStop 	:= FALSE;
+bGroupHalt 	:= FALSE;
+bGroupUnlock:= FALSE;
+
+(* Reset status flags *)
+bActive					:= FALSE;
+bBusy					:= FALSE;
+bError 					:= FALSE;
+iErrorID 				:= 0;
+eAxesGroupStateInit		:= AXES_GROUP_INIT_RESET;
+eAxesGroupStateAbort	:= AXES_GROUP_ABORTING_RESET_FBS;
+bAxisAdded				:= FALSE;
+bAxisRemoved			:= FALSE;
+bRemovedAll				:= FALSE;
+bGroupEnabled			:= FALSE;
+iAxesInGroup			:= 0;
+bGroupLocked			:= FALSE;]]></ST>
+      </Implementation>
+    </Method>
+    <Property Name="Name" Id="{a20fffed-9312-441c-9f67-558e6c527481}" FolderPath="Properties\Parameters\">
+      <Declaration><![CDATA[(* Axes group name for other utilities *)
+PROPERTY Name : STRING]]></Declaration>
+      <Get Name="Get" Id="{a236e93c-c837-4a53-9697-44d2b4323aff}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[Name := sName;]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{6d3f3e39-dbd0-4d5b-976b-7c0b7f95f88b}">
+        <Declaration><![CDATA[
+VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[sName := Name;]]></ST>
+        </Implementation>
+      </Set>
+    </Property>
+    <Property Name="RemovedAll" Id="{6ab50c3a-a18b-47ad-8963-78b682f7bf12}" FolderPath="Properties\Status\">
+      <Declaration><![CDATA[PROPERTY RemovedAll : REFERENCE TO BOOL]]></Declaration>
+      <Get Name="Get" Id="{fdb3314f-f2df-4183-a069-273fca4f907c}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[RemovedAll REF= bRemovedAll;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="State" Id="{65fbd31d-2153-4430-86a3-f2fc85f64fc1}" FolderPath="Properties\Status\">
+      <Declaration><![CDATA[PROPERTY State : REFERENCE TO E_AxesGroupCAState
+]]></Declaration>
+      <Get Name="Get" Id="{f0f2f49d-6fe4-4a79-8fda-12875a4bbd52}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[State REF= eAxesGroupState;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Method Name="StateMachine" Id="{47a06fd5-9265-48a5-a7a8-a0b499b4c7d6}" FolderPath="StateMachine\">
+      <Declaration><![CDATA[METHOD PROTECTED StateMachine
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[CASE eAxesGroupState OF
+	AXES_GROUP_UNINITIALIZED:
+		MS_Uninitialized();
+		
+	AXES_GROUP_INITIALIZING:
+		MS_Initializing();
+	
+	AXES_GROUP_READY_INITIALIZED:
+		MS_ReadyInitialized();
+	
+	AXES_GROUP_IDLE:
+		MS_Idle();
+		
+	AXES_GROUP_ADD:
+		MS_Add();
+		
+	AXES_GROUP_ADD_DONE:
+		MS_AddDone();
+		
+	AXES_GROUP_REMOVE:
+		MS_Remove();
+		
+	AXES_GROUP_REMOVE_DONE:
+		MS_RemoveDone();
+		
+	AXES_GROUP_REMOVE_ALL:
+		MS_RemoveAll();
+		
+	AXES_GROUP_REMOVE_ALL_DONE:
+		MS_RemoveAllDone();
+		
+	AXES_GROUP_ENABLE:
+		MS_GroupEnable();
+		
+	AXES_GROUP_ENABLE_DONE:
+		MS_GroupEnableDone();
+	
+	AXES_GROUP_DISABLE:
+		MS_GroupDisable();
+		
+	AXES_GROUP_DISABLE_DONE:
+		MS_GroupDisableDone();
+		
+	AXES_GROUP_RESET:
+		MS_Reset();
+		
+	AXES_GROUP_RESET_DONE:
+		MS_ResetDone();
+	
+	AXES_GROUP_HALT:
+		MS_GroupHalt();
+		
+	AXES_GROUP_HALT_DONE:
+		MS_GroupHaltDone();
+		
+	AXES_GROUP_STOP:
+		MS_GroupStop();
+		
+	AXES_GROUP_STOP_DONE:
+		MS_GroupStopDone();
+		
+	AXES_GROUP_UNLOCK:
+		MS_GroupUnlock();
+		
+	AXES_GROUP_UNLOCK_DONE:
+		MS_GroupUnlockDone();
+	
+	AXES_GROUP_ABORTING:
+		MS_Aborting();
+		
+END_CASE]]></ST>
+      </Implementation>
+    </Method>
+    <Property Name="StatePlcOpen" Id="{24ef144f-0e94-4330-a69f-aad2f0289d0c}" FolderPath="Properties\Status\">
+      <Declaration><![CDATA[PROPERTY StatePlcOpen : REFERENCE TO E_AxesGroupCAStatePlcOpen
+]]></Declaration>
+      <Get Name="Get" Id="{3164588a-4e12-4610-9730-35f3fb85cf3d}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[StatePlcOpen REF= eStatePlcOpen;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <LineIds Name="FB_AxesGroupCA">
+      <LineId Id="3" Count="69" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxesGroupCA.Active.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxesGroupCA.AxesGroupRef.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxesGroupCA.AxesInGroup.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxesGroupCA.AxisAdded.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxesGroupCA.AxisRemoved.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxesGroupCA.Busy.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxesGroupCA.Deceleration.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxesGroupCA.Deceleration.Set">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxesGroupCA.Error.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxesGroupCA.ErrorID.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxesGroupCA.GroupEnabled.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxesGroupCA.GroupHalted.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxesGroupCA.GroupLocked.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxesGroupCA.GroupStopped.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxesGroupCA.Jerk.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxesGroupCA.Jerk.Set">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxesGroupCA.MR_Abort">
+      <LineId Id="3" Count="15" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxesGroupCA.MR_Add">
+      <LineId Id="3" Count="25" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxesGroupCA.MR_Disable">
+      <LineId Id="3" Count="21" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxesGroupCA.MR_Enable">
+      <LineId Id="3" Count="18" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxesGroupCA.MR_FirstCycle">
+      <LineId Id="3" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxesGroupCA.MR_Halt">
+      <LineId Id="3" Count="19" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxesGroupCA.MR_Init">
+      <LineId Id="3" Count="14" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxesGroupCA.MR_Remove">
+      <LineId Id="3" Count="21" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxesGroupCA.MR_RemoveAll">
+      <LineId Id="3" Count="20" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxesGroupCA.MR_Reset">
+      <LineId Id="3" Count="19" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxesGroupCA.MR_Stop">
+      <LineId Id="3" Count="19" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxesGroupCA.MR_Unlock">
+      <LineId Id="3" Count="11" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxesGroupCA.MS_Aborting">
+      <LineId Id="3" Count="78" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxesGroupCA.MS_Add">
+      <LineId Id="3" Count="29" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxesGroupCA.MS_AddDone">
+      <LineId Id="3" Count="3" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxesGroupCA.MS_GroupDisable">
+      <LineId Id="3" Count="24" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxesGroupCA.MS_GroupDisableDone">
+      <LineId Id="3" Count="3" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxesGroupCA.MS_GroupEnable">
+      <LineId Id="3" Count="24" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxesGroupCA.MS_GroupEnableDone">
+      <LineId Id="3" Count="3" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxesGroupCA.MS_GroupHalt">
+      <LineId Id="3" Count="24" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxesGroupCA.MS_GroupHaltDone">
+      <LineId Id="3" Count="3" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxesGroupCA.MS_GroupStop">
+      <LineId Id="3" Count="23" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxesGroupCA.MS_GroupStopDone">
+      <LineId Id="3" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxesGroupCA.MS_GroupUnlock">
+      <LineId Id="3" Count="9" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxesGroupCA.MS_GroupUnlockDone">
+      <LineId Id="3" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxesGroupCA.MS_Idle">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxesGroupCA.MS_Initializing">
+      <LineId Id="3" Count="36" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxesGroupCA.MS_ReadyInitialized">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxesGroupCA.MS_Remove">
+      <LineId Id="3" Count="26" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxesGroupCA.MS_RemoveAll">
+      <LineId Id="3" Count="32" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxesGroupCA.MS_RemoveAllDone">
+      <LineId Id="3" Count="3" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxesGroupCA.MS_RemoveDone">
+      <LineId Id="3" Count="3" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxesGroupCA.MS_Reset">
+      <LineId Id="3" Count="52" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxesGroupCA.MS_ResetDone">
+      <LineId Id="3" Count="4" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxesGroupCA.MS_Uninitialized">
+      <LineId Id="3" Count="23" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxesGroupCA.Name.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxesGroupCA.Name.Set">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxesGroupCA.RemovedAll.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxesGroupCA.State.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxesGroupCA.StateMachine">
+      <LineId Id="3" Count="69" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_AxesGroupCA.StatePlcOpen.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

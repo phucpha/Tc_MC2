@@ -1,0 +1,33 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="E_AxesGroupCAState" Id="{c00ce7d5-8e79-4b2b-a57a-66b8216c6b39}">
+    <Declaration><![CDATA[{attribute 'strict'}
+TYPE E_AxesGroupCAState :
+(
+	AXES_GROUP_UNINITIALIZED 		:= 0,	(* Axes group is disabled, not ready to work *)
+	AXES_GROUP_INITIALIZING 		:= 10,	(* Axes group is preprating to work *)
+	AXES_GROUP_READY_INITIALIZED	:= 20,	(*  *)
+	AXES_GROUP_IDLE 				:= 30,	(* Axes group ready to work, enabled *)
+	AXES_GROUP_ADD					:= 40,	(* Adding axis to axes group *)
+	AXES_GROUP_ADD_DONE				:= 50,	(* Adding axis to axes group done *)
+	AXES_GROUP_REMOVE				:= 60,	(* Removeing axis from axes group *)
+	AXES_GROUP_REMOVE_DONE			:= 70,	(* Removing axis from axes group done *)
+	AXES_GROUP_REMOVE_ALL			:= 80,	(* Remoing all axis from axes group *)
+	AXES_GROUP_REMOVE_ALL_DONE		:= 90,	(* Removing all axis from axes group done *)
+	AXES_GROUP_ENABLE				:= 100,	(* Enabling axes group *)
+	AXES_GROUP_ENABLE_DONE			:= 110,	(* Enabling axes group done *)
+	AXES_GROUP_DISABLE				:= 120,	(* Disabling axes group *)
+	AXES_GROUP_DISABLE_DONE			:= 130,	(* Disabling axes group done *)
+	AXES_GROUP_RESET				:= 140,	(* Reseting funcion block *)
+	AXES_GROUP_RESET_DONE			:= 150,	(* Reseting function block done *)
+	AXES_GROUP_HALT					:= 160,	(* Halt axes group *)
+	AXES_GROUP_HALT_DONE			:= 170,	(* Halt axes group done *)
+	AXES_GROUP_STOP					:= 180,	(* Stop axes group *)
+	AXES_GROUP_STOP_DONE			:= 190,	(* Stop axes group done *)
+	AXES_GROUP_UNLOCK				:= 200,	(* Unlock axes group after stop *)
+	AXES_GROUP_UNLOCK_DONE			:= 210,	(* Unlock axes group after stop done *)
+	AXES_GROUP_ABORTING				:= -10	(* Aborting *)
+);
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

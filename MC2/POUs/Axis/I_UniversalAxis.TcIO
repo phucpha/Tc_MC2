@@ -1,0 +1,376 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <Itf Name="I_UniversalAxis" Id="{3b0b7829-c4a7-4b31-b5db-f0066f06e084}">
+    <Declaration><![CDATA[INTERFACE I_UniversalAxis
+]]></Declaration>
+    <Property Name="Acceleration" Id="{48631098-13f8-4785-b4b2-b96c43234458}">
+      <Declaration><![CDATA[PROPERTY Acceleration : LREAL]]></Declaration>
+      <Get Name="Get" Id="{9f6dcc07-20ed-4ce0-93d5-23d97034e23f}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+      <Set Name="Set" Id="{34c865f6-eded-48ae-b4bb-6434cb417a54}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Set>
+    </Property>
+    <Property Name="Active" Id="{0b412765-8c9b-4a05-b467-523fe05c937c}">
+      <Declaration><![CDATA[PROPERTY Active : REFERENCE TO BOOL]]></Declaration>
+      <Get Name="Get" Id="{deb07097-85d5-4dcb-9c9a-81c18001237f}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+    <Property Name="ActualPosition" Id="{1529dbbe-e620-4b57-b703-c35db6b2dee9}">
+      <Declaration><![CDATA[PROPERTY ActualPosition : REFERENCE TO LREAL]]></Declaration>
+      <Get Name="Get" Id="{60405cce-0f3b-4a06-9141-ed1a261fb350}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+    <Property Name="ActualVelocity" Id="{aea466e1-0182-4959-9d86-0ab4bf8a1eb5}">
+      <Declaration><![CDATA[PROPERTY ActualVelocity : REFERENCE TO LREAL]]></Declaration>
+      <Get Name="Get" Id="{41454024-c252-4b75-8e7e-d8fd01f3a30b}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+    <Property Name="AxisErrorID" Id="{d02e4587-0595-41a4-b318-428d6455bde8}">
+      <Declaration><![CDATA[PROPERTY AxisErrorID : REFERENCE TO UDINT]]></Declaration>
+      <Get Name="Get" Id="{91b6ce7c-6a6b-415d-9035-b61bce607884}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+    <Property Name="AxisRef" Id="{2b418e68-719b-4962-ba69-fe83918f797c}">
+      <Declaration><![CDATA[PROPERTY AxisRef : AXIS_REF]]></Declaration>
+      <Get Name="Get" Id="{53b18b19-5f8d-4a8e-89f4-296410b10588}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+      <Set Name="Set" Id="{6fd055dc-2b6c-4406-943b-720d8168a3f5}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+      </Set>
+    </Property>
+    <Property Name="BufferMode" Id="{cbcc85e1-5fce-4beb-93db-90cd277072c8}">
+      <Declaration><![CDATA[PROPERTY BufferMode : MC_BufferMode]]></Declaration>
+      <Get Name="Get" Id="{d72825c8-42a6-4006-b505-cf514b34103b}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+      <Set Name="Set" Id="{06880919-6e73-4e5c-a397-dc20ef4ba35d}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Set>
+    </Property>
+    <Property Name="Busy" Id="{a271e2c5-79bf-4884-906d-97a5f3832afa}">
+      <Declaration><![CDATA[PROPERTY Busy : REFERENCE TO BOOL]]></Declaration>
+      <Get Name="Get" Id="{0ba7fb74-0b8d-4467-895f-464938abd137}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+    <Property Name="Deceleration" Id="{ffe64e96-d0d3-4798-af31-949df08a3d27}">
+      <Declaration><![CDATA[PROPERTY Deceleration : LREAL]]></Declaration>
+      <Get Name="Get" Id="{54cdf60f-bc57-4d81-8ba8-bab4278321be}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+      <Set Name="Set" Id="{8bedffe2-6f92-42d1-a43f-33a6984f43f1}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Set>
+    </Property>
+    <Property Name="Direction" Id="{ecf4fd24-f257-4516-af83-d4b9d98597d0}">
+      <Declaration><![CDATA[PROPERTY Direction : Tc2_MC2.MC_Direction]]></Declaration>
+      <Get Name="Get" Id="{b6ad2fb4-93bb-4faf-a98c-06e7d9c76109}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+      <Set Name="Set" Id="{58d5e151-0e0b-428d-8a41-f81645d5df47}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Set>
+    </Property>
+    <Property Name="Error" Id="{00f4633c-422e-4d82-9ce9-699ad8f51941}">
+      <Declaration><![CDATA[PROPERTY Error : REFERENCE TO BOOL]]></Declaration>
+      <Get Name="Get" Id="{1643cfa5-207e-4977-bbad-8af93881ef31}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+    <Property Name="ErrorID" Id="{4e75e1aa-6543-4237-8b7c-cedb1366f62d}">
+      <Declaration><![CDATA[PROPERTY ErrorID : REFERENCE TO UDINT]]></Declaration>
+      <Get Name="Get" Id="{b73488bd-6bab-4d6a-b0b6-9089d28395da}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+    <Property Name="Halted" Id="{f0726a18-d309-4cec-a0c1-397c4616eef5}">
+      <Declaration><![CDATA[PROPERTY Halted : REFERENCE TO BOOL]]></Declaration>
+      <Get Name="Get" Id="{7ad7f829-078f-4eb5-b42f-bb3c1b0ee810}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+    <Property Name="InPosition" Id="{5f2fe62f-f81c-4ae3-9d2f-efaa61fe2a59}">
+      <Declaration><![CDATA[PROPERTY InPosition : REFERENCE TO BOOL]]></Declaration>
+      <Get Name="Get" Id="{d96f9ec1-3a2c-4e2b-aee9-3110dd888799}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+    <Property Name="InVelocity" Id="{b0a0174e-a9bb-4810-a5a7-0b03c8644671}">
+      <Declaration><![CDATA[PROPERTY InVelocity : REFERENCE TO BOOL]]></Declaration>
+      <Get Name="Get" Id="{83b288b1-3324-4dff-8764-d88cf7026a47}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+    <Property Name="IsHomed" Id="{ea83f7ae-fe15-4890-a574-d5c73823296b}">
+      <Declaration><![CDATA[PROPERTY IsHomed : REFERENCE TO BOOL]]></Declaration>
+      <Get Name="Get" Id="{5da706dc-b7bc-417a-846b-a4323c9086a2}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+    <Property Name="Jerk" Id="{551baf46-c834-4df7-86c6-f5a361bc95e1}">
+      <Declaration><![CDATA[PROPERTY Jerk : LREAL]]></Declaration>
+      <Get Name="Get" Id="{d41e4899-78a0-4306-9e32-ee027c3bbe3e}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+      <Set Name="Set" Id="{0eecbec4-91ad-4672-b032-03694a45ad23}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Set>
+    </Property>
+    <Property Name="JogAcceleration" Id="{63aa4054-a5d8-4ce4-9be3-510a690f81f1}">
+      <Declaration><![CDATA[PROPERTY JogAcceleration : LREAL]]></Declaration>
+      <Get Name="Get" Id="{229c3f3d-441e-4ced-8ac6-a0e317021086}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+      <Set Name="Set" Id="{49624662-02bc-4ca6-9c3c-008a7b6d199f}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Set>
+    </Property>
+    <Property Name="JogDeceleration" Id="{dc89d44e-12a3-46c2-a710-2b8c5a2cb962}">
+      <Declaration><![CDATA[PROPERTY JogDeceleration : LREAL]]></Declaration>
+      <Get Name="Get" Id="{c7daab7d-0d58-4dee-b869-4fee0fbe1f91}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+      <Set Name="Set" Id="{fb1186f6-30b2-432e-9b83-2fbf98576c22}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Set>
+    </Property>
+    <Property Name="JogDirection" Id="{85fda380-5b93-4aeb-9a9e-f12e9f7bf9fa}">
+      <Declaration><![CDATA[PROPERTY JogDirection : E_AxisJogDirection]]></Declaration>
+      <Get Name="Get" Id="{c3ae6ebe-5abf-4cc9-a41b-60f60ae9c903}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+      <Set Name="Set" Id="{b2c13945-9db0-4462-8d41-704f413bd2d4}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Set>
+    </Property>
+    <Property Name="JogDone" Id="{7dc7237f-a7c0-40ce-9d5a-e869a27e600f}">
+      <Declaration><![CDATA[PROPERTY JogDone : REFERENCE TO BOOL]]></Declaration>
+      <Get Name="Get" Id="{cfebe13f-7e09-4ef3-8606-e3914c393ddc}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+    <Property Name="JogJerk" Id="{de660b03-268e-4e5e-b39e-85bca7546959}">
+      <Declaration><![CDATA[PROPERTY JogJerk : LREAL]]></Declaration>
+      <Get Name="Get" Id="{1e2dc914-719c-4243-8878-d9bc9d5fa362}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+      <Set Name="Set" Id="{3fb4d279-f5e0-4eb2-b7d3-41676e73e1eb}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Set>
+    </Property>
+    <Property Name="JogMode" Id="{dcddafae-26f0-4712-9f9c-e62057a78f77}">
+      <Declaration><![CDATA[PROPERTY JogMode : E_JogMode]]></Declaration>
+      <Get Name="Get" Id="{e32a848a-7c5e-43d5-b144-c2545addf0a5}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+      <Set Name="Set" Id="{eee8d695-4beb-43b2-9a84-49a02deb819a}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Set>
+    </Property>
+    <Property Name="JogPosition" Id="{462e1d08-ae5a-4517-8371-2ec94aa4ea93}">
+      <Declaration><![CDATA[PROPERTY JogPosition : LREAL]]></Declaration>
+      <Get Name="Get" Id="{05f08f36-3969-4ea3-8cea-024d8e9bcb0a}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+      <Set Name="Set" Id="{31acb8d5-d2ca-4b69-b58b-e9128f464828}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Set>
+    </Property>
+    <Property Name="JogVelocity" Id="{c902be1a-6f72-4618-98c8-5cb9c09452d5}">
+      <Declaration><![CDATA[PROPERTY JogVelocity : LREAL]]></Declaration>
+      <Get Name="Get" Id="{f9641bc1-ee44-4262-a264-47e3640baed0}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+      <Set Name="Set" Id="{b2702419-3dc0-47db-96d9-119f81b45913}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Set>
+    </Property>
+    <Property Name="LagError" Id="{e41a4ab4-b8da-47aa-83a3-da6567c9a302}">
+      <Declaration><![CDATA[PROPERTY LagError : LREAL]]></Declaration>
+      <Get Name="Get" Id="{2e4524f1-3d3f-498e-98a6-28a72ee3c589}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+    <Property Name="MoveActive" Id="{6fb0e7ac-c20a-4ea6-a6a4-777e840f674a}">
+      <Declaration><![CDATA[PROPERTY MoveActive : REFERENCE TO BOOL]]></Declaration>
+      <Get Name="Get" Id="{9aae87d0-4c5e-4a6e-a312-7123ea698c89}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+    <Method Name="MR_Abort" Id="{3818a320-4036-4ce3-b578-b685da1b86ec}">
+      <Declaration><![CDATA[METHOD MR_Abort : BOOL
+]]></Declaration>
+    </Method>
+    <Method Name="MR_FirstCycle" Id="{49615d0f-53ea-4faf-b78a-80749b5340ce}">
+      <Declaration><![CDATA[METHOD MR_FirstCycle
+VAR_INPUT
+	sName 				: STRING; 	(* Axis object name *)
+	sMeasurementUnits	: STRING;	(* Measurement units used by axis *)
+	bModulo				: BOOL;		(* Axis is periodic *)
+END_VAR
+]]></Declaration>
+    </Method>
+    <Method Name="MR_Halt" Id="{742af089-81c5-4f31-abd3-6bed18eda6c4}">
+      <Declaration><![CDATA[METHOD MR_Halt : BOOL
+]]></Declaration>
+    </Method>
+    <Method Name="MR_Home" Id="{6f77b2d3-c856-4cb8-945b-42dddf9382d9}">
+      <Declaration><![CDATA[METHOD MR_Home : BOOL
+VAR_INPUT
+	lrHomePosition : LREAL;
+END_VAR]]></Declaration>
+    </Method>
+    <Method Name="MR_Init" Id="{d4f935ec-d296-4374-bfe6-2e09059ab934}">
+      <Declaration><![CDATA[METHOD MR_Init : BOOL]]></Declaration>
+    </Method>
+    <Method Name="MR_Jog" Id="{060a08fc-0836-48ec-8747-3c6c43593ba0}">
+      <Declaration><![CDATA[METHOD MR_Jog : BOOL
+VAR_INPUT
+	//lrJogPosition : LREAL;
+	//eJogDirection : E_AxisJogDirection;
+	//eJogMode	  : E_JogMode;
+	bJogActive	  : BOOL;
+END_VAR]]></Declaration>
+    </Method>
+    <Method Name="MR_MoveAbsolute" Id="{ae35c21b-c8ba-4a4e-9fed-071f2fb40c25}">
+      <Declaration><![CDATA[METHOD MR_MoveAbsolute : BOOL
+VAR_INPUT
+	lrAbsolutePosition : LREAL;
+END_VAR]]></Declaration>
+    </Method>
+    <Method Name="MR_MoveAdditive" Id="{c46a75cd-9a7c-4edf-93e0-52561ef12eec}">
+      <Declaration><![CDATA[METHOD MR_MoveAdditive : BOOL
+VAR_INPUT
+	lrRelativeDistance : LREAL;
+END_VAR]]></Declaration>
+    </Method>
+    <Method Name="MR_MoveRelative" Id="{bc05119d-85ac-4c80-a5eb-f0eaa6f9d17f}">
+      <Declaration><![CDATA[METHOD MR_MoveRelative : BOOL
+VAR_INPUT
+	lrRelativeDistance : LREAL;
+END_VAR]]></Declaration>
+    </Method>
+    <Method Name="MR_MoveVelocity" Id="{b17b3b92-667d-40e8-81ae-eec4f80987af}">
+      <Declaration><![CDATA[METHOD MR_MoveVelocity : BOOL
+]]></Declaration>
+    </Method>
+    <Method Name="MR_Reset" Id="{18050e25-f678-418e-a0b1-b2e24a89c0a2}">
+      <Declaration><![CDATA[METHOD MR_Reset : BOOL]]></Declaration>
+    </Method>
+    <Method Name="MR_Stop" Id="{dbd4adc4-f5d8-4260-b7a0-f13c6e53e4df}">
+      <Declaration><![CDATA[METHOD MR_Stop : BOOL]]></Declaration>
+    </Method>
+    <Property Name="Name" Id="{03368d18-97e3-4ba2-8e21-0c68bd366e21}">
+      <Declaration><![CDATA[PROPERTY Name : STRING]]></Declaration>
+      <Get Name="Get" Id="{92dc3a9d-d94f-47d6-9864-b194274f581e}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+      <Set Name="Set" Id="{35441884-70a6-40bb-878c-811045b315e8}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+      </Set>
+    </Property>
+    <Property Name="Options" Id="{1dcf6810-da26-4e8b-9f47-5e2414188e4e}">
+      <Declaration><![CDATA[PROPERTY Options : ST_MoveOptions]]></Declaration>
+      <Get Name="Get" Id="{040ba0a0-79df-4a78-9835-23fb183e717b}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+      <Set Name="Set" Id="{98e0adf9-0218-4431-ad89-de6bcfabbf46}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Set>
+    </Property>
+    <Property Name="Override" Id="{44935fbc-cb1b-4b60-ba19-8445547b3428}">
+      <Declaration><![CDATA[PROPERTY Override : LREAL]]></Declaration>
+      <Get Name="Get" Id="{e009f9db-8997-4c23-83db-f4ade2dd9773}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+      <Set Name="Set" Id="{316e65a3-b7f5-4fa7-b0e0-990fdcdbbd81}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Set>
+    </Property>
+    <Property Name="PowerOn" Id="{f0eaf72a-396d-46aa-b5a6-f7ffa7d63899}">
+      <Declaration><![CDATA[PROPERTY PowerOn : REFERENCE TO BOOL]]></Declaration>
+      <Get Name="Get" Id="{063152d0-bf8d-4bc4-9caf-e5b2144ce4d7}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+    <Property Name="SetpointPosition" Id="{67fc9fdd-36f2-4299-9575-6c6f3c371a87}">
+      <Declaration><![CDATA[PROPERTY SetpointPosition : LREAL]]></Declaration>
+      <Get Name="Get" Id="{7eee3a45-bbba-4076-bcf5-fc459e0c70b6}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+    <Property Name="SetpointVelocity" Id="{93ac00ee-8e11-4237-821b-2dd87f909bec}">
+      <Declaration><![CDATA[PROPERTY SetpointVelocity : LREAL]]></Declaration>
+      <Get Name="Get" Id="{0178c149-44c0-4f77-b15d-5a679445495c}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+    <Property Name="State" Id="{ac6bbc58-8060-4097-8489-ea522fb06e08}">
+      <Declaration><![CDATA[PROPERTY State : REFERENCE TO E_AxisState]]></Declaration>
+      <Get Name="Get" Id="{a5ac9e8c-8b2e-4822-960e-edf96f0f85c6}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+    <Property Name="StatePlcOpen" Id="{5a069102-1788-4ad2-b73b-92514f023bad}">
+      <Declaration><![CDATA[PROPERTY StatePlcOpen : REFERENCE TO E_AxisStatePlcOpen]]></Declaration>
+      <Get Name="Get" Id="{ba1c6428-a4cc-43bd-b26f-2973cfccb860}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+    <Property Name="StopDeceleration" Id="{9bc66f02-1130-483d-bf1c-46d30b94b7e8}">
+      <Declaration><![CDATA[PROPERTY StopDeceleration : LREAL]]></Declaration>
+      <Get Name="Get" Id="{a1c564a1-fe53-450f-a9f7-7e671c0e44d6}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+      <Set Name="Set" Id="{f669958f-3712-4804-bdab-ca6bd5c69de7}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Set>
+    </Property>
+    <Property Name="StopJerk" Id="{bfc0909e-fac1-4940-98a0-3ae4b316efc7}">
+      <Declaration><![CDATA[PROPERTY StopJerk : LREAL]]></Declaration>
+      <Get Name="Get" Id="{5aa1d1a0-3bf9-44ac-85ff-44b4e2badd22}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+      <Set Name="Set" Id="{73fc64f1-7f50-4009-8b0c-960f4fa0d8ff}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Set>
+    </Property>
+    <Property Name="Stopped" Id="{46ea4368-a306-4c53-9993-d6718ed6c990}">
+      <Declaration><![CDATA[PROPERTY Stopped : REFERENCE TO BOOL]]></Declaration>
+      <Get Name="Get" Id="{c9def6ed-69c5-4105-8285-e1afc3d29cc7}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+    <Property Name="Unit" Id="{21b146b4-d32e-494c-9eda-c9987873503a}">
+      <Declaration><![CDATA[PROPERTY Unit : STRING]]></Declaration>
+      <Get Name="Get" Id="{bf0288f3-79e8-438e-b3a1-8c0bbb984720}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+      <Set Name="Set" Id="{1b78b6fe-8971-4d14-bea5-93e646e5e696}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+      </Set>
+    </Property>
+    <Property Name="Velocity" Id="{80c22b11-9609-48dc-8622-d946865716aa}">
+      <Declaration><![CDATA[PROPERTY Velocity : LREAL]]></Declaration>
+      <Get Name="Get" Id="{db5a210e-7314-43d6-9122-b06fa2ea582f}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+      <Set Name="Set" Id="{2f5958eb-9211-4c43-b0c9-120e512321a9}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Set>
+    </Property>
+  </Itf>
+</TcPlcObject>

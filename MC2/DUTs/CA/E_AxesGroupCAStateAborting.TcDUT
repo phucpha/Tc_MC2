@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="E_AxesGroupCAStateAborting" Id="{23e23b19-2e8d-4e38-8443-e06a54388540}">
+    <Declaration><![CDATA[{attribute 'strict'}
+TYPE E_AxesGroupCAStateAborting :
+(
+	AXES_GROUP_ABORTING_RESET_FBS 		:= 0,	(* Reseting all function blocks used inside function block *)
+	AXES_GROUP_ABORTING_REMOVE_ALL		:= 10,	(* Removing all axis from axes group  *)
+	AXES_GROUP_ABORTING_RESET_ERRORS	:= 20,	(* Reseting axes group errors *)
+	AXES_GROUP_ABORTING_DISABLE			:= 30,	(* Disabling axes group *)
+	AXES_GROUP_ABORTING_DONE			:= 40	(* Aborting procedure finished *)
+);
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

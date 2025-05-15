@@ -1,0 +1,18 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <DUT Name="E_AxisStateCA" Id="{698aee84-910c-4e85-8f4e-20255bac3c37}">
+    <Declaration><![CDATA[{attribute 'strict'}
+TYPE E_AxisStateCA :
+(
+	AXIS_CA_IDLE				:= 0,
+	AXIS_CA_MOVE_ABSOLUTE 		:= 10,
+	AXIS_CA_MOVE_ABSOLUTE_DONE 	:= 20,
+	AXIS_CA_MOVE_RELATIVE 		:= 30,
+	AXIS_CA_MOVE_RELATIVE_DONE 	:= 40,
+	AXIS_CA_HALT				:= 50,
+	AXIS_CA_HALT_DONE			:= 60
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

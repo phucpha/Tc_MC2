@@ -1,0 +1,12 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="E_AxesGroupCAMethodState" Id="{424a5829-8e40-440c-84d7-404e5e3d3881}">
+    <Declaration><![CDATA[{attribute 'strict'}
+TYPE E_AxesGroupCAMethodState :
+(
+	AXES_GROUP_METHOD_EXECUTE 	:= 0,	(* Reseting all fubs *)
+	AXES_GROUP_METHOD_DONE		:= 10	(* Enabling axes group *)
+);
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

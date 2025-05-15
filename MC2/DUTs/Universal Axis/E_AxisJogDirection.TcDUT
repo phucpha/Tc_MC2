@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <DUT Name="E_AxisJogDirection" Id="{0a62ec39-866d-4779-a4d1-bcfd556e0a1d}">
+    <Declaration><![CDATA[{attribute 'strict'}
+TYPE E_AxisJogDirection :
+(
+	AXIS_JOG_DIR_POSITIVE := 0,	(* Perform jog in positive direction *)
+	AXIS_JOG_DIR_NEGATIVE := 10	(* Perform jog in negative direction *)
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

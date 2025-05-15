@@ -1,0 +1,192 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <Itf Name="I_AxesGroupCA" Id="{991538d4-438b-444f-8b2a-9f074eb6a6fd}">
+    <Declaration><![CDATA[INTERFACE I_AxesGroupCA
+]]></Declaration>
+    <Property Name="Active" Id="{c0b37335-e0d9-43b4-9efd-e5d0ea69da3e}">
+      <Declaration><![CDATA[PROPERTY Active : REFERENCE TO BOOL]]></Declaration>
+      <Get Name="Get" Id="{62c831d4-6e58-4b77-bf10-bcdb7944a5ec}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+    <Property Name="AxesGroupRef" Id="{0a77d230-6b2b-452c-b479-274481c06976}">
+      <Declaration><![CDATA[PROPERTY AxesGroupRef : REFERENCE TO AXES_GROUP_REF]]></Declaration>
+      <Get Name="Get" Id="{88f339c7-ba86-44bb-b577-b4f00ec9b16c}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+    <Property Name="AxesInGroup" Id="{6dcc8908-2b64-4ef3-b590-f220e0a02f6b}">
+      <Declaration><![CDATA[PROPERTY AxesInGroup : REFERENCE TO UINT]]></Declaration>
+      <Get Name="Get" Id="{fe9a97e0-5639-4a71-a3d9-704439caae52}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+    <Property Name="AxisAdded" Id="{ad9f1acb-3180-4889-a868-351529ae52ad}">
+      <Declaration><![CDATA[PROPERTY AxisAdded : REFERENCE TO BOOL]]></Declaration>
+      <Get Name="Get" Id="{1db03471-2171-47ae-8cf8-ce673a22bfb4}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+    <Property Name="AxisRemoved" Id="{2e4c1a12-f898-40e8-b7c7-5174ce589451}">
+      <Declaration><![CDATA[PROPERTY AxisRemoved : REFERENCE TO BOOL]]></Declaration>
+      <Get Name="Get" Id="{cb25fb1a-ee63-46aa-80af-3cc1079dff78}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+    <Property Name="Busy" Id="{a00af55c-0600-4df7-87f3-b852306c86de}">
+      <Declaration><![CDATA[PROPERTY Busy : REFERENCE TO BOOL]]></Declaration>
+      <Get Name="Get" Id="{b353bbb8-210a-40c9-92fd-2c74c0791bb5}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+    <Property Name="Deceleration" Id="{d361921c-3c4c-4759-ad7b-49750d6fbe73}">
+      <Declaration><![CDATA[PROPERTY Deceleration : LREAL]]></Declaration>
+      <Get Name="Get" Id="{6d48cb12-5b15-4b3e-891e-4c7986ec93a8}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+      <Set Name="Set" Id="{0f93e98a-8668-4572-889d-410c10d93dfb}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Set>
+    </Property>
+    <Property Name="Error" Id="{48641180-fbda-4326-b44d-abc49e79f416}">
+      <Declaration><![CDATA[PROPERTY Error : REFERENCE TO BOOL]]></Declaration>
+      <Get Name="Get" Id="{b8bd865c-bde0-47cd-95ac-391d91ad6f0d}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+    <Property Name="ErrorID" Id="{4cef602f-4b92-4300-97a6-9147557cad38}">
+      <Declaration><![CDATA[PROPERTY ErrorID : REFERENCE TO UDINT]]></Declaration>
+      <Get Name="Get" Id="{422e62cd-113a-4132-984f-93ba80c2ae4d}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+    <Property Name="GroupEnabled" Id="{894a71b3-aafe-42c2-b1f6-d345a82e5f4c}">
+      <Declaration><![CDATA[PROPERTY GroupEnabled : REFERENCE TO BOOL]]></Declaration>
+      <Get Name="Get" Id="{cafe9a37-0f7b-4ab5-bde2-503c5e4814b7}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+    <Property Name="GroupLocked" Id="{6977eb82-bae5-4c80-b698-58d0f7c561e2}">
+      <Declaration><![CDATA[PROPERTY GroupLocked : REFERENCE TO BOOL]]></Declaration>
+      <Get Name="Get" Id="{c63c4658-1a5e-4136-8d96-03bc855c6f72}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+    <Property Name="Jerk" Id="{4965704e-6dae-45b4-b5d4-b57db58c16d0}">
+      <Declaration><![CDATA[PROPERTY Jerk : LREAL]]></Declaration>
+      <Get Name="Get" Id="{dc9d44d4-6a38-4276-841d-a244bbdfd21f}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+      <Set Name="Set" Id="{eae621f0-4963-4998-85fb-d3aa3cea609d}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Set>
+    </Property>
+    <Method Name="MR_Abort" Id="{0252f915-41e0-486a-84f6-c5cb72a32e76}">
+      <Declaration><![CDATA[METHOD MR_Abort : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+    </Method>
+    <Method Name="MR_Add" Id="{dfaebfff-fc25-4660-be57-b823535d05a8}">
+      <Declaration><![CDATA[METHOD MR_Add : BOOL
+VAR_INPUT
+	stInternalAxisRef	: AXIS_REF;
+	iAxisIdentyficator	: UINT;
+END_VAR
+]]></Declaration>
+    </Method>
+    <Method Name="MR_Disable" Id="{9c592406-6e69-4568-b26b-f916b4e51cc6}">
+      <Declaration><![CDATA[METHOD MR_Disable : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+    </Method>
+    <Method Name="MR_Enable" Id="{cc014443-597c-4308-948c-75e93861f870}">
+      <Declaration><![CDATA[METHOD MR_Enable : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+    </Method>
+    <Method Name="MR_FirstCycle" Id="{a292ee0f-c5e2-4b88-a8fb-f5d1b9549e5d}">
+      <Declaration><![CDATA[METHOD MR_FirstCycle
+VAR_INPUT
+	sName 			: STRING;	(* Default axes group object name *)
+	lrDeceleration 	: LREAL;	(* Default axes group object deceleration *)
+	lrJerk			: LREAL;	(* Default axes group object jerk *)
+END_VAR
+]]></Declaration>
+    </Method>
+    <Method Name="MR_Halt" Id="{3a1997ce-e360-4cdb-8f41-16fd0493e676}">
+      <Declaration><![CDATA[METHOD MR_Halt : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+    </Method>
+    <Method Name="MR_Init" Id="{59fedc20-319c-423b-a392-7f53d7a36b9d}">
+      <Declaration><![CDATA[METHOD MR_Init : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+    </Method>
+    <Method Name="MR_Remove" Id="{abdf249e-27c7-4c52-bfed-a58a169d9df6}">
+      <Declaration><![CDATA[METHOD MR_Remove : BOOL
+VAR_INPUT
+	iAxisIdentyficator	: UINT;
+END_VAR
+]]></Declaration>
+    </Method>
+    <Method Name="MR_RemoveAll" Id="{3aac9616-31df-454d-a825-79de9cc06e09}">
+      <Declaration><![CDATA[METHOD MR_RemoveAll : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+    </Method>
+    <Method Name="MR_Reset" Id="{5a808256-87a6-4237-9980-4816f129a101}">
+      <Declaration><![CDATA[METHOD MR_Reset : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+    </Method>
+    <Method Name="MR_Stop" Id="{dfe22dcb-cc6d-4b4a-a8d9-947bf926485d}">
+      <Declaration><![CDATA[METHOD MR_Stop : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+    </Method>
+    <Method Name="MR_Unlock" Id="{fe02d05c-886b-47a4-a622-f8dabc019692}">
+      <Declaration><![CDATA[METHOD MR_Unlock : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+    </Method>
+    <Property Name="Name" Id="{5940d882-1f3d-48cd-a61c-970416623214}">
+      <Declaration><![CDATA[PROPERTY Name : STRING]]></Declaration>
+      <Get Name="Get" Id="{bf19f827-4343-4c8e-a33c-779e9af5dbd8}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+      <Set Name="Set" Id="{e872c5f7-9fce-48e8-ab8e-f416227e92ef}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+      </Set>
+    </Property>
+    <Property Name="RemovedAll" Id="{20ae10c2-062d-4fdf-978a-032d12083a3a}">
+      <Declaration><![CDATA[PROPERTY RemovedAll : REFERENCE TO BOOL]]></Declaration>
+      <Get Name="Get" Id="{cee045ba-ea73-4425-a9bb-947edac0228a}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+    <Property Name="State" Id="{46821953-a44f-49cd-9ab0-c4e2c3fea34f}">
+      <Declaration><![CDATA[PROPERTY State : REFERENCE TO E_AxesGroupCAState]]></Declaration>
+      <Get Name="Get" Id="{ad187374-77dc-4739-8c73-5c4dddb4d6a3}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+    <Property Name="StatePlcOpen" Id="{9c046ec1-0c09-4a7e-9b03-54ff238e3d13}">
+      <Declaration><![CDATA[PROPERTY StatePlcOpen : REFERENCE TO E_AxesGroupCAStatePlcOpen]]></Declaration>
+      <Get Name="Get" Id="{5d4f05a4-5ac2-47a1-908a-2c98cff4fcd7}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+  </Itf>
+</TcPlcObject>

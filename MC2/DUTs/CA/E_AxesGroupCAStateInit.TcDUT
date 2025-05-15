@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="E_AxesGroupCAStateInit" Id="{43ee8d52-4976-4e16-b186-e36320b1adea}">
+    <Declaration><![CDATA[{attribute 'strict'}
+TYPE E_AxesGroupCAStateInit :
+(
+	AXES_GROUP_INIT_RESET 	:= 0,	(* Reseting all fubs *)
+	AXES_GROUP_INIT_ENABLE	:= 10,	(* Enabling axes group *)
+	AXES_GROUP_INIT_DONE	:= 20	(* Initialization procedure done*)
+);
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

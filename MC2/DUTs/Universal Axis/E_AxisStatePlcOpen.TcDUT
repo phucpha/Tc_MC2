@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <DUT Name="E_AxisStatePlcOpen" Id="{e6f013aa-1b68-4957-956a-13ce24c0856b}">
+    <Declaration><![CDATA[{attribute 'strict'}
+TYPE E_AxisStatePlcOpen :
+(
+	AXIS_PLCOPEN_DISABLED				:= 0,	(* Axis power controler if of *)
+	AXIS_PLCOPEN_STANDSTILL				:= 10,	(* Axis is powered on *)
+	AXIS_PLCOPEN_HOMING					:= 20,	(* Axis performs homing procedure *)
+	AXIS_PLCOPEN_STOPPING				:= 30,	(* Axis is stopping the movement *)
+	AXIS_PLCOPEN_CONTINUOUS_MOTION		:= 40,	(* Axis is moving continuosly with constant speed *)
+	AXIS_PLCOPEN_DISCRETE_MOTION		:= 50,	(* Axis is moving from point to point *)
+	AXIS_PLCOPEN_SYNCHRONIZED_MOTION 	:= 60,	(* Axis is moving in synchronized motion to master *)
+	AXIS_PLCOPEN_ERRORSTOP				:= 70	(* Axis stoped because of error *)
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

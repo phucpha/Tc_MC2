@@ -1,0 +1,59 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <Itf Name="I_UniversalAxisCA" Id="{71f2142d-11f6-4578-bf9e-be59a6d688c8}">
+    <Declaration><![CDATA[INTERFACE I_UniversalAxisCA EXTENDS I_UniversalAxis
+]]></Declaration>
+    <Property Name="DirectionCA" Id="{40560496-ce00-4387-a16a-793c931ebc35}">
+      <Declaration><![CDATA[PROPERTY DirectionCA : Tc3_Mc3Definitions.MC_DIRECTION]]></Declaration>
+      <Get Name="Get" Id="{467a9772-21ee-4535-9c95-f3f859bbc5b8}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+      <Set Name="Set" Id="{50ae83fc-2b60-4f45-ad0b-d13f7369cad6}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Set>
+    </Property>
+    <Property Name="Gap" Id="{df199cf0-7e1a-488a-919c-e1632e969ed6}">
+      <Declaration><![CDATA[PROPERTY Gap : MC_LREAL]]></Declaration>
+      <Get Name="Get" Id="{0c35475f-1734-43d4-ab26-76319bff7474}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+      <Set Name="Set" Id="{8d1c9294-5fed-4deb-8022-1a4e4adcc489}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Set>
+    </Property>
+    <Property Name="HaltedCA" Id="{fcd41d24-0918-4a2f-8a84-6e033be2404f}">
+      <Declaration><![CDATA[PROPERTY HaltedCA : REFERENCE TO BOOL
+]]></Declaration>
+      <Get Name="Get" Id="{88b14bf8-2bf0-45db-8585-97930d322b70}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+    <Method Name="MR_HaltCA" Id="{28c2dbe2-1869-47a7-9f8c-786e3a147353}">
+      <Declaration><![CDATA[METHOD MR_HaltCA : BOOL
+VAR_INPUT
+END_VAR
+]]></Declaration>
+    </Method>
+    <Method Name="MR_MoveAbsoluteCA" Id="{ad9263c4-012e-4621-abe1-e3e191589481}">
+      <Declaration><![CDATA[METHOD MR_MoveAbsoluteCA : BOOL
+VAR_INPUT
+	lrAbsolutePosition : LREAL;
+END_VAR
+]]></Declaration>
+    </Method>
+    <Method Name="MR_MoveRelativeCA" Id="{aab0e32b-87d0-46a1-9099-b0fd17247068}">
+      <Declaration><![CDATA[METHOD MR_MoveRelativeCA : BOOL
+VAR_INPUT
+	lrRelativeDistance : LREAL;
+END_VAR
+]]></Declaration>
+    </Method>
+    <Property Name="StateCA" Id="{77a0948c-cca0-42de-85da-2442ae6ea5bf}">
+      <Declaration><![CDATA[PROPERTY StateCA : REFERENCE TO E_AxisStateCA
+]]></Declaration>
+      <Get Name="Get" Id="{7db3c847-997c-499e-87fb-1efbe03e31cf}">
+        <Declaration><![CDATA[]]></Declaration>
+      </Get>
+    </Property>
+  </Itf>
+</TcPlcObject>

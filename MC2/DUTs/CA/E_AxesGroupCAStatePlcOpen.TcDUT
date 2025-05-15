@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.9">
+  <DUT Name="E_AxesGroupCAStatePlcOpen" Id="{d9eaea25-2c3e-4cee-a77b-daee1e885806}">
+    <Declaration><![CDATA[{attribute 'strict'}
+TYPE E_AxesGroupCAStatePlcOpen :
+(
+	PLCOPEN_AXES_GROUP_DISABLED 	:= 0,	(* Axes group is disabled *)
+	PLCOPEN_AXES_GROUP_NOT_READY 	:= 10,	(* Axes group is not ready to work*)
+	PLCOPEN_AXES_GROUP_STANDBY 		:= 20,	(* Axes group is enabled and waiting for commands*)
+	PLCOPEN_AXES_GROUP_MOVING 		:= 30,	(* Axes group is moving *)
+	PLCOPEN_AXES_GROUP_STOPPING 	:= 40,	(* Axes group is stopping *)
+	PLCOPEN_AXES_GROUP_ERROR		:= 50	(* Axes group is in error state*)
+);
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>
