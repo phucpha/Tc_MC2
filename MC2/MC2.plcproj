@@ -237,12 +237,15 @@
     <Folder Include="GVLs" />
     <Folder Include="POUs\Axis" />
     <Folder Include="POUs\AxesGroup" />
-    <Folder Include="POUs\Draff" />
     <Folder Include="Version" />
     <Folder Include="VISUs" />
     <Folder Include="POUs" />
   </ItemGroup>
   <ItemGroup>
+    <PlaceholderReference Include="Tc2_MC2">
+      <DefaultResolution>Tc2_MC2, * (Beckhoff Automation GmbH)</DefaultResolution>
+      <Namespace>Tc2_MC2</Namespace>
+    </PlaceholderReference>
     <PlaceholderReference Include="Tc2_Standard">
       <DefaultResolution>Tc2_Standard, * (Beckhoff Automation GmbH)</DefaultResolution>
       <Namespace>Tc2_Standard</Namespace>
@@ -251,9 +254,20 @@
       <DefaultResolution>Tc2_System, * (Beckhoff Automation GmbH)</DefaultResolution>
       <Namespace>Tc2_System</Namespace>
     </PlaceholderReference>
+    <PlaceholderReference Include="Tc3_EventLogger">
+      <DefaultResolution>Tc3_EventLogger, * (Beckhoff Automation GmbH)</DefaultResolution>
+      <Namespace>Tc3_EventLogger</Namespace>
+    </PlaceholderReference>
+    <PlaceholderReference Include="Tc3_Mc3Definitions">
+      <DefaultResolution>Tc3_Mc3Definitions, * (Beckhoff Automation GmbH)</DefaultResolution>
+      <Namespace>Tc3_Mc3Definitions</Namespace>
+    </PlaceholderReference>
     <PlaceholderReference Include="Tc3_Module">
       <DefaultResolution>Tc3_Module, * (Beckhoff Automation GmbH)</DefaultResolution>
       <Namespace>Tc3_Module</Namespace>
+    </PlaceholderReference>
+    <PlaceholderReference Include="Tc_Utilities">
+      <DefaultResolution>Tc_Utilities, * (NewEngineer)</DefaultResolution>
     </PlaceholderReference>
   </ItemGroup>
   <ItemGroup>
@@ -320,30 +334,12 @@
     <Compile Include="POUs\Axis\I_UniversalAxisCA.TcIO">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="POUs\Draff\FB_AxisServoCA_1.TcPOU">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="POUs\Draff\FB_AxisServo_1.TcPOU">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="POUs\Draff\FB_UniversalAxis_1.TcPOU">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="POUs\Draff\I_UniversalAxisCA_1.TcIO">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="POUs\Draff\I_UniversalAxis_1.TcIO">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="Version\Global_Version.TcGVL">
       <SubType>Code</SubType>
     </Compile>
   </ItemGroup>
   <ItemGroup>
     <Content Include="POUs\AxesGroup\README.md">
-      <SubType>Content</SubType>
-    </Content>
-    <Content Include="POUs\Draff\README.md">
       <SubType>Content</SubType>
     </Content>
   </ItemGroup>

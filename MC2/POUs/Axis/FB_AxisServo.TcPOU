@@ -13,17 +13,7 @@ VAR
 	
 	(* Home switch cam *)
 	piHomeSwitch	: FB_DigitalInput;		(*  *)
-END_VAR
-(*
-Version history:
-
-+-------------+------------+----------------+----------+------------------------------------------+
-|Date         | Version    | created under  | Author   | Remark                                   |
-+=============+============+================+==========+==========================================+
-|2021-11      | 1.0.0.0    | V3.1.4024.22   | ADBO     | Function block created                   |
-+-------------+------------+----------------+----------+------------------------------------------+
-
-*)]]></Declaration>
+END_VAR]]></Declaration>
     <Implementation>
       <ST><![CDATA[(* Run home switch FB *)
 piHomeSwitch();
@@ -89,13 +79,7 @@ piHomeSwitch.MR_FirstCycle(CONCAT(THIS^.sName,', home switch'), sModuleType := p
       </Implementation>
     </Method>
     <Method Name="MS_Aborting" Id="{f2b50b86-35b5-4226-9eba-2c1b885215f9}" FolderPath="StateMachine\">
-      <Declaration><![CDATA[(* 
-Copyrights	: Sonion Industrialization - Control Systems Desing Department
-Author		: Adrian Bogdzia - based on MEMS universal libraries
-Date		: 11/2021
-Description : This function block is used represent basic axis
-*)
-METHOD PROTECTED MS_Aborting
+      <Declaration><![CDATA[METHOD PROTECTED MS_Aborting
 VAR_INPUT
 END_VAR
 ]]></Declaration>
@@ -106,13 +90,7 @@ SUPER^.MS_Aborting();]]></ST>
       </Implementation>
     </Method>
     <Method Name="MS_Halt" Id="{7627eb40-8a5d-480b-a0d3-149c62505a5a}" FolderPath="StateMachine\">
-      <Declaration><![CDATA[(* 
-Copyrights	: Sonion Industrialization - Control Systems Desing Department
-Author		: Adrian Bogdzia - based on MEMS universal libraries
-Date		: 11/2021
-Description : This function block is used represent basic axis
-*)
-METHOD PROTECTED MS_Halt
+      <Declaration><![CDATA[METHOD PROTECTED MS_Halt
 VAR_INPUT
 END_VAR
 ]]></Declaration>
@@ -125,13 +103,7 @@ SUPER^.MS_Halt();]]></ST>
       </Implementation>
     </Method>
     <Method Name="MS_Home" Id="{c2e538ba-b38a-4fd5-887f-aed7bd7f7379}" FolderPath="StateMachine\">
-      <Declaration><![CDATA[(* 
-Copyrights	: Sonion Industrialization - Control Systems Desing Department
-Author		: Adrian Bogdzia - based on MEMS universal libraries
-Date		: 11/2021
-Description : This function block is used represent basic axis
-*)
-METHOD PROTECTED MS_Home
+      <Declaration><![CDATA[METHOD PROTECTED MS_Home
 VAR_INPUT
 END_VAR
 ]]></Declaration>
@@ -158,13 +130,7 @@ END_IF]]></ST>
       </Implementation>
     </Method>
     <Method Name="MS_HomeDone" Id="{5fbc7ac4-b8b3-45ff-a136-276ceff471dd}" FolderPath="StateMachine\">
-      <Declaration><![CDATA[(* 
-Copyrights	: Sonion Industrialization - Control Systems Desing Department
-Author		: Adrian Bogdzia - based on MEMS universal libraries
-Date		: 11/2021
-Description : This function block is used represent basic axis
-*)
-METHOD PROTECTED MS_HomeDone
+      <Declaration><![CDATA[METHOD PROTECTED MS_HomeDone
 VAR_INPUT
 END_VAR
 ]]></Declaration>
@@ -178,13 +144,7 @@ END_IF]]></ST>
       </Implementation>
     </Method>
     <Method Name="MS_Reset" Id="{d9bee0f3-2ce6-4521-a42e-e3c3211d68bc}" FolderPath="StateMachine\">
-      <Declaration><![CDATA[(* 
-Copyrights	: Sonion Industrialization - Control Systems Desing Department
-Author		: Adrian Bogdzia - based on MEMS universal libraries
-Date		: 11/2021
-Description : This function block is used represent basic axis
-*)
-METHOD PROTECTED MS_Reset
+      <Declaration><![CDATA[METHOD PROTECTED MS_Reset
 VAR_INPUT
 END_VAR
 ]]></Declaration>
@@ -200,13 +160,7 @@ END_IF]]></ST>
       </Implementation>
     </Method>
     <Method Name="MS_Stop" Id="{7feef091-de7d-4245-bd41-05966da1c68d}" FolderPath="StateMachine\">
-      <Declaration><![CDATA[(* 
-Copyrights	: Precision System Engineering - Control Systems Desing Department
-Author		: Adrian Bogdzia - based on MEMS universal libraries
-Date		: 11/2021
-Description : This function block is used represent basic axis
-*)
-METHOD PROTECTED MS_Stop
+      <Declaration><![CDATA[METHOD PROTECTED MS_Stop
 VAR_INPUT
 END_VAR
 ]]></Declaration>
